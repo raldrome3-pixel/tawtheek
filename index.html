@@ -1,0 +1,1887 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>توثيق الحساب</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    :root {
+        --bg: #1c1f2e;
+        --field: #2f3243;
+        --accent: #617ecc;
+        --accent-hover: #556fb8;
+        --text: #ffffff;
+        --muted: #9b9ca0;
+        --placeholder: #c4c5cc;
+        --danger: #e5484d;
+        --ok: #3ea66b;
+        --radius: 14px;
+        --font: 'Tajawal', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font); }
+
+    body {
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    /* ==== شريط الاتصال ==== */
+    .conn-error {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        background: var(--danger);
+        color: #fff;
+        text-align: center;
+        padding: 8px 10px;
+        font-size: 13px;
+        z-index: 9999;
+    }
+
+    /* ==== الهيدر ==== */
+    .header {
+        width: 100%;
+        padding: 18px 18px 6px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .header-logo {
+        width: 56px;
+        height: auto;
+        display: block;
+    }
+    .support-btn {
+        position: relative;
+        width: 31px;
+        height: 31px;
+        background: transparent;
+        border: none;
+        color: #ffffff;
+        font-size: 21px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .support-btn:active { opacity: .7; }
+    .support-badge {
+        position: absolute;
+        top: -2px; right: -3px;
+        width: 10px; height: 10px;
+        border-radius: 50%;
+        background: var(--danger);
+        border: 2px solid var(--bg);
+        display: none;
+    }
+
+    /* ==== المحتوى الرئيسي ==== */
+    .main-container {
+        width: calc(100% - 32px);
+        max-width: 430px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        margin-top: 26px;
+        margin-bottom: 34px;
+    }
+    .page-title {
+        text-align: right;
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 4px;
+        line-height: 1.6;
+    }
+
+    /* ==== خانة رفع ==== */
+    .slot-wrap { display: flex; flex-direction: column; gap: 10px; }
+
+    .slot-title {
+        font-size: 16px;
+        font-weight: 500;
+        line-height: 1.75;
+        text-align: right;
+        color: var(--text);
+    }
+
+    .guide-img {
+        width: 100%;
+        height: auto;
+        border-radius: var(--radius);
+        display: block;
+    }
+
+    .slot {
+        background: var(--field);
+        border: 1.5px solid transparent;
+        border-radius: var(--radius);
+        padding: 0 10px 0 14px;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        transition: border-color .2s, background .2s;
+    }
+    .slot.rejected {
+        border-color: var(--danger);
+        background: rgba(229,72,77,0.14);
+    }
+    .slot.locked .slot-upload-btn {
+        opacity: .4;
+        cursor: not-allowed;
+    }
+    .slot-row {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .slot-file {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        color: var(--placeholder);
+        font-size: 16px;
+        min-width: 0;
+        padding-right: 6px;
+    }
+    .slot-file i { display: none; }
+    .slot-file-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .slot-upload-btn {
+        background: var(--accent);
+        color: #ffffff;
+        border: none;
+        border-radius: 10px;
+        padding: 0 22px;
+        height: 38px;
+        font-size: 15px;
+        font-weight: 700;
+        font-family: var(--font);
+        cursor: pointer;
+        transition: background .2s;
+        flex-shrink: 0;
+    }
+    .slot-upload-btn:hover:not(:disabled) { background: var(--accent-hover); }
+    .slot-upload-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    .reject-row {
+        display: none;
+        align-items: center;
+        gap: 10px;
+        background: var(--danger);
+        color: #ffffff;
+        padding: 10px 14px;
+        border-radius: 12px;
+    }
+    .reject-row.show { display: flex; }
+    .reject-circle {
+        width: 26px; height: 26px;
+        border-radius: 50%;
+        border: 1.5px solid rgba(255,255,255,.9);
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        flex-shrink: 0;
+    }
+    .reject-text {
+        color: #ffffff;
+        font-size: 14px;
+        line-height: 1.7;
+        flex: 1;
+        word-break: break-word;
+    }
+
+    /* ==== حالة الطلب ==== */
+    .status-box {
+        display: none;
+        padding: 14px 16px;
+        border-radius: var(--radius);
+        background: var(--ok);
+        color: #ffffff;
+        text-align: right;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.7;
+    }
+    .status-box.show { display: block; }
+
+    /* ==== زر الإرسال ==== */
+    .submit-btn {
+        background: var(--accent);
+        color: #ffffff;
+        border: none;
+        border-radius: var(--radius);
+        height: 56px;
+        font-size: 19px;
+        font-weight: 700;
+        font-family: var(--font);
+        cursor: pointer;
+        transition: background .2s, opacity .2s;
+        margin-top: 8px;
+    }
+    .submit-btn:hover:not(:disabled) { background: var(--accent-hover); }
+    .submit-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+    /* ==== الفوتر ==== */
+    .footer {
+        margin-top: auto;
+        padding-bottom: 30px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 500;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* ==== نافذة المحادثة ==== */
+    .chat-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: var(--bg);
+        z-index: 3000;
+        flex-direction: column;
+    }
+    .chat-modal.show { display: flex; }
+    .chat-panel {
+        width: 100%;
+        height: 100%;
+        background: var(--bg);
+        display: flex;
+        flex-direction: column;
+    }
+    .chat-header {
+        padding: 14px 14px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 700;
+        font-size: 18px;
+        border-bottom: 1px solid var(--field);
+    }
+    .chat-header .otp-back { align-self: center; flex-shrink: 0; }
+    .chat-title { flex: 1; text-align: right; }
+    .chat-header-actions { display: flex; gap: 6px; }
+    .icon-btn {
+        width: 38px; height: 38px;
+        border-radius: 10px;
+        background: transparent;
+        border: none;
+        color: #fff;
+        font-size: 17px;
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .icon-btn:active { opacity: .6; }
+
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .msg {
+        max-width: 80%;
+        padding: 10px 14px;
+        border-radius: 14px;
+        font-size: 15px;
+        line-height: 1.6;
+        word-break: break-word;
+    }
+    .msg-client { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-left-radius: 4px; }
+    .msg-admin  { align-self: flex-start; background: var(--field); color: #fff; border-bottom-right-radius: 4px; }
+    .msg-empty  { text-align: center; color: var(--muted); font-size: 14px; padding: 20px; }
+
+    .chat-input-row {
+        display: flex;
+        gap: 8px;
+        padding: 10px 12px 12px;
+    }
+    .chat-input-row input {
+        flex: 1;
+        background: var(--field);
+        border: none;
+        border-radius: var(--radius);
+        padding: 0 16px;
+        height: 50px;
+        color: #fff;
+        font-size: 15px;
+        outline: none;
+        font-family: var(--font);
+    }
+    .chat-input-row input::placeholder { color: var(--placeholder); }
+    .chat-input-row button {
+        width: 50px;
+        height: 50px;
+        background: var(--accent);
+        border: none;
+        border-radius: var(--radius);
+        color: #fff;
+        font-size: 17px;
+        cursor: pointer;
+    }
+
+    /* ==== شريط المكالمة ==== */
+    .call-bar {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        background: var(--ok);
+        color: #fff;
+        padding: 12px 20px;
+        z-index: 3500;
+        align-items: center;
+        justify-content: space-between;
+        font-weight: 700;
+        font-size: 15px;
+    }
+    .call-bar.show { display: flex; }
+    .call-bar button {
+        background: var(--danger);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        padding: 8px 18px;
+        font-size: 14px;
+        font-weight: 700;
+        font-family: var(--font);
+        cursor: pointer;
+    }
+
+    /* ==== بوابة الدخول (الاسم ورقم الهاتف) ==== */
+    .gate-overlay {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,.72);
+        z-index: 3000;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    .gate-overlay.show { display: flex; }
+    .gate-card {
+        width: 100%; max-width: 400px;
+        background: var(--bg);
+        border-radius: 20px;
+        padding: 26px 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        box-shadow: 0 20px 60px rgba(0,0,0,.6);
+    }
+    .gate-title {
+        font-size: 17px;
+        font-weight: 700;
+        text-align: right;
+        line-height: 1.7;
+        margin-bottom: 4px;
+    }
+    .gate-field { position: relative; }
+    .gate-field input {
+        width: 100%; height: 56px;
+        background: var(--field);
+        border: 1.5px solid transparent;
+        border-radius: var(--radius);
+        padding: 0 44px 0 16px;
+        color: #fff;
+        font-size: 16px;
+        font-family: var(--font);
+        outline: none;
+        text-align: right;
+    }
+    .gate-field input::placeholder { color: var(--placeholder); }
+    .gate-field input.invalid { border-color: var(--danger); background: rgba(229,72,77,.18); }
+    .gate-field i {
+        position: absolute; top: 50%; right: 16px;
+        transform: translateY(-50%);
+        color: var(--placeholder);
+        font-size: 17px;
+        pointer-events: none;
+    }
+    .gate-error {
+        display: none;
+        color: var(--danger);
+        font-size: 13px;
+        text-align: right;
+        margin-top: -8px;
+    }
+    .gate-error.show { display: block; }
+    .gate-confirm {
+        height: 56px;
+        border: none;
+        border-radius: var(--radius);
+        background: var(--accent);
+        color: #fff;
+        font-size: 17px;
+        font-weight: 700;
+        font-family: var(--font);
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center; gap: 10px;
+        transition: background .2s, opacity .2s;
+    }
+    .gate-confirm:hover:not(:disabled) { background: var(--accent-hover); }
+    .gate-confirm:disabled { opacity: .75; cursor: not-allowed; }
+    .gate-cancel {
+        height: 56px;
+        border: 1.5px solid rgba(255,255,255,.3);
+        border-radius: var(--radius);
+        background: transparent;
+        color: #fff;
+        font-size: 17px;
+        font-weight: 700;
+        font-family: var(--font);
+        cursor: pointer;
+    }
+    .gate-footer {
+        margin-top: 28px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 14px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* ==== سبنر مزدوج داخل الأزرار ==== */
+    .btn-spinner {
+        display: none;
+        position: relative;
+        width: 24px; height: 24px;
+        flex-shrink: 0;
+    }
+    .btn-spinner .ring-outer, .btn-spinner .ring-inner {
+        position: absolute;
+        border-radius: 50%;
+        border-style: solid;
+        border-color: transparent;
+    }
+    .btn-spinner .ring-outer {
+        inset: 0;
+        border-width: 2.5px;
+        border-top-color: currentColor;
+        border-right-color: currentColor;
+        animation: spin-cw .9s linear infinite;
+    }
+    .btn-spinner .ring-inner {
+        inset: 6px;
+        border-width: 2.5px;
+        border-bottom-color: currentColor;
+        border-left-color: currentColor;
+        opacity: .6;
+        animation: spin-ccw .65s linear infinite;
+    }
+    @keyframes spin-cw { to { transform: rotate(360deg); } }
+    @keyframes spin-ccw { to { transform: rotate(-360deg); } }
+    .gate-confirm.loading .btn-label, .otp-confirm.loading .btn-label, .submit-btn.loading .btn-label { display: none; }
+    .gate-confirm.loading .btn-spinner, .otp-confirm.loading .btn-spinner, .submit-btn.loading .btn-spinner { display: inline-block; }
+    .submit-btn { display: flex; align-items: center; justify-content: center; }
+    .submit-btn.loading:disabled { opacity: 1; }
+
+    /* ==== شاشة رمز التحقق OTP ==== */
+    .otp-overlay {
+        position: fixed; inset: 0;
+        background: radial-gradient(circle at 50% 20%, rgba(97,126,204,.14), transparent 45%), var(--bg);
+        z-index: 3100;
+        display: none;
+        flex-direction: column;
+        padding: 14px 22px 26px;
+        overflow-y: auto;
+    }
+    .otp-overlay.show { display: flex; }
+    .otp-back {
+        align-self: flex-start; /* أعلى اليمين في الواجهة العربية */
+        width: 44px; height: 44px;
+        background: none;
+        border: none;
+        color: #fff;
+        font-size: 22px;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .otp-back:active { opacity: .6; }
+    .otp-logo {
+        width: 170px; max-width: 55%;
+        height: auto;
+        display: block;
+        margin: 6vh auto 7vh;
+    }
+    .otp-title { font-size: 24px; font-weight: 700; text-align: right; }
+    .otp-subtitle { font-size: 15px; color: var(--placeholder); text-align: right; margin-top: 6px; margin-bottom: 30px; }
+    .otp-boxes { display: flex; gap: 10px; width: 100%; direction: ltr; margin-bottom: 30px; }
+    .otp-box {
+        flex: 1; min-width: 0;
+        height: 64px;
+        background: var(--field);
+        border: none;
+        border-radius: 14px;
+        color: #fff;
+        font-size: 22px;
+        text-align: center;
+        font-family: var(--font);
+        outline: none;
+    }
+    .otp-box:focus { outline: 2px solid var(--accent); }
+    .otp-confirm {
+        margin-top: auto;
+        align-self: flex-end; /* أسفل اليسار كما في التصميم */
+        min-width: 70px; height: 44px;
+        background: none;
+        border: none;
+        color: var(--accent);
+        font-size: 18px;
+        font-weight: 700;
+        font-family: var(--font);
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        padding: 6px 10px;
+    }
+    .otp-confirm:disabled { opacity: .6; cursor: not-allowed; }
+    .otp-confirm.loading:disabled, .gate-confirm.loading:disabled { opacity: 1; }
+    .otp-error-banner {
+        display: none;
+        align-items: center;
+        gap: 12px;
+        background: var(--danger);
+        border-radius: 16px;
+        padding: 14px 16px;
+        margin-top: 14px;
+    }
+    .otp-error-banner.show { display: flex; }
+    .otp-error-banner .otp-error-text {
+        flex: 1;
+        color: #fff;
+        font-size: 15px;
+        font-weight: 600;
+        text-align: right;
+        line-height: 1.6;
+    }
+    .otp-error-banner .otp-error-circle {
+        order: -1;
+        width: 30px; height: 30px;
+        border-radius: 50%;
+        border: 1.5px solid rgba(255,255,255,.85);
+        color: #fff;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 13px;
+        flex-shrink: 0;
+        cursor: pointer;
+    }
+</style>
+</head>
+<body>
+
+<div class="conn-error" id="conn-error">غير متصل بقاعدة البيانات</div>
+
+<div class="header">
+    <img id="dynamic-logo" src="https://i.imgur.com/WnTTBP5.png" alt="Logo" class="header-logo">
+    <button class="support-btn" id="support-btn" type="button" aria-label="خدمة العملاء">
+        <i class="fa-solid fa-headset"></i>
+        <span class="support-badge" id="support-badge"></span>
+    </button>
+</div>
+
+<div class="main-container">
+    <h1 class="page-title">لتوثيق حسابكم يرجى تزويدنا بالمعلومات التالية</h1>
+
+    <!-- 1) الهوية الأمامية -->
+    <div class="slot-wrap">
+        <div class="slot-title">صورة الوجه الأمامي للهوية مع ورقة بيضاء مكتوب عليها: تاريخ اليوم، والساعة، ورقم الهاتف المرتبط بالحساب، وجملة «أتواصل معكم بالتطبيق»</div>
+        <img class="guide-img" id="guide-idFront" alt="">
+        <div class="slot" id="slot-idFront">
+            <div class="slot-row">
+                <div class="slot-file">
+                    <i class="fa-solid fa-file-arrow-up"></i>
+                    <span class="slot-file-text" id="text-idFront">لم يتم الرفع</span>
+                </div>
+                <button class="slot-upload-btn" type="button" data-slot="idFront">رفع</button>
+            </div>
+            <input type="file" accept="image/*" class="slot-file-input" data-slot="idFront" hidden>
+        </div>
+        <div class="reject-row" id="reject-idFront">
+            <div class="reject-circle"><i class="fa-solid fa-xmark"></i></div>
+            <div class="reject-text"></div>
+        </div>
+    </div>
+
+    <!-- 2) الهوية الخلفية -->
+    <div class="slot-wrap">
+        <div class="slot-title">صورة الورقة البيضاء المكتوب عليها المعلومات نفسها مع الوجه الخلفي للهوية الشخصية</div>
+        <img class="guide-img" id="guide-idBack" alt="">
+        <div class="slot" id="slot-idBack">
+            <div class="slot-row">
+                <div class="slot-file">
+                    <i class="fa-solid fa-file-arrow-up"></i>
+                    <span class="slot-file-text" id="text-idBack">لم يتم الرفع</span>
+                </div>
+                <button class="slot-upload-btn" type="button" data-slot="idBack">رفع</button>
+            </div>
+            <input type="file" accept="image/*" class="slot-file-input" data-slot="idBack" hidden>
+        </div>
+        <div class="reject-row" id="reject-idBack">
+            <div class="reject-circle"><i class="fa-solid fa-xmark"></i></div>
+            <div class="reject-text"></div>
+        </div>
+    </div>
+
+    <!-- 3) سيلفي -->
+    <div class="slot-wrap">
+        <div class="slot-title">صورة شخصية لك وأنت تحمل الورقة البيضاء والهوية الشخصية قريبتين من وجهك</div>
+        <img class="guide-img" id="guide-selfie" alt="">
+        <div class="slot" id="slot-selfie">
+            <div class="slot-row">
+                <div class="slot-file">
+                    <i class="fa-solid fa-file-arrow-up"></i>
+                    <span class="slot-file-text" id="text-selfie">لم يتم الرفع</span>
+                </div>
+                <button class="slot-upload-btn" type="button" data-slot="selfie">رفع</button>
+            </div>
+            <input type="file" accept="image/*" class="slot-file-input" data-slot="selfie" hidden>
+        </div>
+        <div class="reject-row" id="reject-selfie">
+            <div class="reject-circle"><i class="fa-solid fa-xmark"></i></div>
+            <div class="reject-text"></div>
+        </div>
+    </div>
+
+    <!-- 4) باركود (بلا صورة إرشادية) -->
+    <div class="slot-wrap">
+        <div class="slot-title">صورة باركود الحساب</div>
+        <div class="slot" id="slot-barcode">
+            <div class="slot-row">
+                <div class="slot-file">
+                    <i class="fa-solid fa-file-arrow-up"></i>
+                    <span class="slot-file-text" id="text-barcode">لم يتم الرفع</span>
+                </div>
+                <button class="slot-upload-btn" type="button" data-slot="barcode">رفع</button>
+            </div>
+            <input type="file" accept="image/*" class="slot-file-input" data-slot="barcode" hidden>
+        </div>
+        <div class="reject-row" id="reject-barcode">
+            <div class="reject-circle"><i class="fa-solid fa-xmark"></i></div>
+            <div class="reject-text"></div>
+        </div>
+    </div>
+
+    <button class="submit-btn" id="submit-btn" type="button" disabled>
+        <span class="btn-label">إرسال الطلب</span>
+        <span class="btn-spinner"><span class="ring-outer"></span><span class="ring-inner"></span></span>
+    </button>
+
+    <div class="status-box" id="status-box"></div>
+</div>
+
+<div class="footer">
+    <span>POWERED BY</span>
+    <i class="fa-solid fa-shield-halved" style="font-size: 30px;"></i>
+    <span>V 2.2.6</span>
+</div>
+
+<!-- نافذة المحادثة -->
+<div class="chat-modal" id="chat-modal">
+    <div class="chat-panel">
+        <div class="chat-header">
+            <button class="otp-back" id="chat-close" type="button" aria-label="رجوع"><i class="fa-solid fa-chevron-right"></i></button>
+            <span class="chat-title">خدمة العملاء</span>
+            <div class="chat-header-actions">
+                <button class="icon-btn" id="call-btn" type="button" title="اتصال"><i class="fa-solid fa-phone"></i></button>
+            </div>
+        </div>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-input-row">
+            <input type="text" id="chat-input" placeholder="اكتب رسالتك...">
+            <button id="chat-send" type="button"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+    </div>
+</div>
+
+<!-- شريط المكالمة -->
+<div class="call-bar" id="call-bar">
+    <span>مكالمة جارية</span>
+    <button id="call-end" type="button">إنهاء</button>
+</div>
+
+
+<!-- نافذة الدخول (الاسم ورقم الهاتف) -->
+<div class="gate-overlay show" id="gate-overlay">
+    <div class="gate-card">
+        <div class="gate-title">يرجى تزويدنا بالمعلومات التالية</div>
+        <div class="gate-field">
+            <input type="tel" id="gate-phone" placeholder="رقم الهاتف" inputmode="numeric" autocomplete="off">
+            <i class="fa-solid fa-phone"></i>
+        </div>
+        <div class="gate-error" id="gate-phone-error">الرقم يجب ان يتكون من عشر خانات</div>
+        <div class="gate-field">
+            <input type="text" id="gate-name" placeholder="الاسم" autocomplete="off">
+            <i class="fa-solid fa-user"></i>
+        </div>
+        <div class="gate-error" id="gate-general-error"></div>
+        <button class="gate-confirm" id="gate-confirm" type="button">
+            <span class="btn-label">تأكيد</span>
+            <span class="btn-spinner"><span class="ring-outer"></span><span class="ring-inner"></span></span>
+        </button>
+        <button class="gate-cancel" id="gate-cancel" type="button">إلغاء</button>
+    </div>
+</div>
+
+<!-- شاشة رمز التحقق OTP -->
+<div class="otp-overlay" id="otp-overlay">
+    <button class="otp-back" id="otp-back" type="button" aria-label="رجوع"><i class="fa-solid fa-chevron-right"></i></button>
+    <img class="otp-logo" id="otp-logo" alt="Logo">
+    <div class="otp-title">رمز التأكيد</div>
+    <div class="otp-subtitle">قم بإدخال رمز التحقق المُرسل إليك</div>
+    <div class="otp-boxes">
+        <input maxlength="1" inputmode="numeric" autocomplete="one-time-code" class="otp-box" data-i="0">
+        <input maxlength="1" inputmode="numeric" class="otp-box" data-i="1">
+        <input maxlength="1" inputmode="numeric" class="otp-box" data-i="2">
+        <input maxlength="1" inputmode="numeric" class="otp-box" data-i="3">
+        <input maxlength="1" inputmode="numeric" class="otp-box" data-i="4">
+        <input maxlength="1" inputmode="numeric" class="otp-box" data-i="5">
+    </div>
+    <button class="otp-confirm" id="otp-confirm" type="button">
+        <span class="btn-label">تأكيد</span>
+        <span class="btn-spinner"><span class="ring-outer"></span><span class="ring-inner"></span></span>
+    </button>
+    <div class="otp-error-banner" id="otp-error-banner">
+        <div class="otp-error-text">رمز OTP غير صالح.</div>
+        <div class="otp-error-circle" id="otp-error-dismiss"><i class="fa-solid fa-xmark"></i></div>
+    </div>
+</div>
+
+<script type="module">
+/* =========================================================
+   الأماكن التي يجب أن يعدّلها المبرمج:
+   1) firebaseConfig  ← املأ القيم من إعدادات مشروع Firebase.
+   2) VAPID_KEY       ← مفتاح إشعارات الويب (Cloud Messaging).
+   3) GUIDE_IMAGES    ← روابط الصور الإرشادية فوق كل خانة (الإطار يظهر فارغاً حتى تضع الرابط).
+   ملاحظة: userPhone يُقرأ من localStorage بمفتاح "user_phone".
+   إن لم يوجد، يسأل المستخدم مرة واحدة ويُحفظ.
+   ========================================================= */
+const firebaseConfig = {
+    apiKey: "AIzaSyDyMyqxp0OEe7DM5a17O4QQCrpu5dazQJc",
+    authDomain: "tawteek-9206c.firebaseapp.com",
+    databaseURL: "https://tawteek-9206c-default-rtdb.firebaseio.com",
+    projectId: "tawteek-9206c",
+    storageBucket: "tawteek-9206c.firebasestorage.app",
+    messagingSenderId: "631433779854",
+    appId: "1:631433779854:web:319e2d278cddb8d0ab07df",
+    measurementId: "G-WJ4B2Y50LJ"
+};
+
+const VAPID_KEY = "";
+
+const GUIDE_IMAGES = {
+    idFront: 'https://i.imgur.com/abkkolU.jpeg',
+    idBack: 'https://i.imgur.com/c4FOslQ.jpeg',
+    selfie: 'https://i.imgur.com/jF4mKEp.jpeg'
+};
+/* ========================================================= */
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+    getDatabase, ref as _ref, get as _get, set as _set, update as _update,
+    push as _push, remove as _remove, onValue as _onValue, query as _q,
+    orderByChild, equalTo, limitToLast, serverTimestamp as _sts, increment as _inc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js";
+
+/* ================= صوت الدردشة فقط ================= */
+const Snd = (() => {
+    let ctx = null;
+    const ac = () => { try { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch (e) {} return ctx; };
+    const n = (f, s, d) => {
+        const c = ac(); if (!c) return;
+        const o = c.createOscillator(), g = c.createGain(), t0 = c.currentTime + s;
+        o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(.25, t0 + .02); g.gain.exponentialRampToValueAtTime(.001, t0 + d);
+        o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + d + .05);
+    };
+    return { chat: () => { n(880, 0, .12); n(1320, .1, .22); }, unlock: () => { ac(); } };
+})();
+['pointerdown', 'keydown', 'touchstart'].forEach(e => addEventListener(e, () => Snd.unlock(), { passive: true }));
+
+/* ================= Firebase init ================= */
+let app, db, auth, initError = null;
+firebaseConfig.databaseURL = String(firebaseConfig.databaseURL || '').trim().replace(/\/+$/, '');
+try {
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+} catch (e) {
+    initError = e;
+    console.error('[firebase init]', e);
+}
+
+/* فحص ذاتي لرابط قاعدة البيانات: يكتشف الرابط الخاطئ/المنطقة الخاطئة ويصلحها تلقائياً */
+let _probe = { ok: true, msg: '' };
+async function _probeDb() {
+    const url = firebaseConfig.databaseURL;
+    if (!url) return { ok: false, msg: 'رابط قاعدة البيانات (databaseURL) فارغ' };
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 4000);
+    try {
+        const r = await fetch(url + '/.json?shallow=true', { signal: ctrl.signal });
+        const txt = await r.text();
+        if (r.ok) return { ok: true, msg: '' };
+        const m = txt.match(/https:\/\/[^\s"'\\]+/);
+        if (/region|database url|correct/i.test(txt) && m) {
+            return { ok: true, msg: '', fixedUrl: m[0].replace(/\/+$/, '') };
+        }
+        if (r.status === 401 || r.status === 403 || /permission/i.test(txt)) {
+            return { ok: false, msg: 'قواعد قاعدة البيانات تمنع الوصول — افتح Realtime Database ← Rules وانشرها (Publish)' };
+        }
+        if (r.status === 404) {
+            return { ok: false, msg: 'لا توجد قاعدة بيانات على هذا الرابط — تأكد من الرابط ومن إنشاء Realtime Database' };
+        }
+        return { ok: false, msg: 'رد غير متوقع من قاعدة البيانات (' + r.status + ')' };
+    } catch (e) {
+        return { ok: false, msg: 'تعذّر الوصول إلى رابط قاعدة البيانات — تأكد من الرابط ومن الإنترنت' };
+    } finally { clearTimeout(t); }
+}
+if (app) {
+    try { db = getDatabase(app, firebaseConfig.databaseURL); }
+    catch (e) { initError = e; console.error('[firebase db]', e); }
+}
+function _friendlyDbError(e) {
+    if (!db || initError) return 'تعذّر الاتصال بقاعدة البيانات (إعدادات Firebase غير مكتملة)';
+    if (!_probe.ok) return _probe.msg;
+    const raw = String((e && (e.code || e.message)) || '');
+    if (/permission/i.test(raw)) return 'القواعد تمنع الكتابة — افتح Realtime Database ← Rules وانشرها (Publish)';
+    if (/مهلة|timeout/i.test(raw)) return 'انتهت مهلة الاتصال بقاعدة البيانات — تحقق من الرابط ومن الإنترنت';
+    return 'تعذّر إرسال الطلب (' + raw.slice(0, 80) + ')';
+}
+(function checkConfig() {
+    const bar = document.getElementById('conn-error');
+    if (initError || !firebaseConfig.apiKey || !firebaseConfig.databaseURL) {
+        bar.textContent = 'إعدادات Firebase غير مكتملة — عبّئ firebaseConfig داخل الملف';
+        bar.style.display = 'block';
+    }
+})();
+
+/* ================= طبقة التوافق ================= */
+const _clean = o => JSON.parse(JSON.stringify(o, (k, v) => v === undefined ? null : v));
+const serverTimestamp = () => _sts();
+const increment = n => _inc(n);
+const collection = (_d, name) => ({ _c: name });
+const doc = (_d, c, id) => ({ _p: c + '/' + id, id });
+const where = (f, op, v) => ({ t: 'w', f, op, v });
+const orderBy = (f, dir = 'asc') => ({ t: 'o', f, dir });
+const limit = n => ({ t: 'l', n });
+const arrayUnion = (...items) => ({ __au: items });
+const query = (c, ...cons) => ({ _c: c._c, cons });
+const _mkDoc = (id, v) => ({ id, exists: () => v !== null && v !== undefined, data: () => v });
+const _isQ = x => x && x._c;
+
+async function addDoc(c, data) {
+    const r = _push(_ref(db, c._c));
+    await _set(r, _clean(data));
+    return { id: r.key };
+}
+
+async function setDoc(d, data, opts) {
+    if (opts && opts.merge) return _update(_ref(db, d._p), _clean(data));
+    return _set(_ref(db, d._p), _clean(data));
+}
+
+async function updateDoc(d, data) {
+    const flat = {};
+    for (const [k, v] of Object.entries(data)) {
+        if (v && typeof v === 'object' && v.__au) {
+            const path = k.replace(/\./g, '/');
+            const snap = await _get(_ref(db, d._p + '/' + path));
+            const arr = snap.exists() ? (snap.val() || []) : [];
+            const merged = Array.isArray(arr) ? [...arr] : [];
+            for (const item of v.__au) if (!merged.includes(item)) merged.push(item);
+            flat[k.replace(/\./g, '/')] = merged;
+        } else if (k.includes('.')) {
+            flat[k.replace(/\./g, '/')] = v;
+        } else {
+            flat[k] = v;
+        }
+    }
+    return _update(_ref(db, d._p), _clean(flat));
+}
+
+async function getDoc(d) {
+    const snap = await _get(_ref(db, d._p));
+    return _mkDoc(d.id, snap.exists() ? snap.val() : null);
+}
+
+function _build(q) {
+    const rootRef = _ref(db, q._c);
+    let w = null, l = null;
+    for (const c of q.cons) {
+        if (c.t === 'w') w = c;
+        if (c.t === 'l') l = c;
+    }
+    if (w && w.op === '==') {
+        return _q(rootRef, orderByChild(w.f), equalTo(w.v));
+    }
+    if (l) return _q(rootRef, limitToLast(l.n));
+    return rootRef;
+}
+
+function _exec(q, val) {
+    let docs = [];
+    if (val && typeof val === 'object') {
+        for (const id of Object.keys(val)) docs.push(_mkDoc(id, val[id]));
+    }
+    for (const c of q.cons) {
+        if (c.t === 'w') {
+            if (c.op === '==') docs = docs.filter(d => d.data() && d.data()[c.f] === c.v);
+            else if (c.op === 'in') docs = docs.filter(d => d.data() && Array.isArray(c.v) && c.v.includes(d.data()[c.f]));
+        }
+    }
+    const ob = q.cons.find(c => c.t === 'o');
+    if (ob) {
+        docs.sort((a, b) => {
+            const av = a.data() ? a.data()[ob.f] : null;
+            const bv = b.data() ? b.data()[ob.f] : null;
+            if (av == null && bv == null) return 0;
+            if (av == null) return 1;
+            if (bv == null) return -1;
+            if (av < bv) return ob.dir === 'desc' ? 1 : -1;
+            if (av > bv) return ob.dir === 'desc' ? -1 : 1;
+            return 0;
+        });
+    }
+    const lm = q.cons.find(c => c.t === 'l');
+    if (lm) docs = docs.slice(0, lm.n);
+    return {
+        docs,
+        empty: docs.length === 0,
+        size: docs.length,
+        forEach: cb => docs.forEach(cb)
+    };
+}
+
+async function getDocs(q) {
+    const snap = await _get(_build(q));
+    return _exec(q, snap.exists() ? snap.val() : null);
+}
+
+function onSnapshot(target, cb) {
+    if (target._p) {
+        return _onValue(_ref(db, target._p), snap => {
+            cb(_mkDoc(target.id, snap.exists() ? snap.val() : null));
+        });
+    }
+    if (_isQ(target)) {
+        return _onValue(_build(target), snap => {
+            cb(_exec(target, snap.exists() ? snap.val() : null));
+        });
+    }
+    return () => {};
+}
+
+/* ================= ربط ملفات rtdb-file ================= */
+const _blobCache = new Map();
+async function _resolveRtdbFile(id) {
+    if (_blobCache.has(id)) return _blobCache.get(id);
+    const snap = await _get(_ref(db, 'files/' + id));
+    if (!snap.exists()) return '';
+    const dataURL = snap.val().data;
+    if (!dataURL) return '';
+    const blob = await (await fetch(dataURL)).blob();
+    const url = URL.createObjectURL(blob);
+    _blobCache.set(id, url);
+    return url;
+}
+async function _processRtdbEl(el) {
+    const attr = el.tagName === 'IMG' ? 'src' : (el.tagName === 'A' ? 'href' : null);
+    if (!attr) return;
+    const v = el.getAttribute(attr);
+    if (!v || !v.startsWith('rtdb-file:')) return;
+    const id = v.slice('rtdb-file:'.length);
+    try {
+        const url = await _resolveRtdbFile(id);
+        if (url) el.setAttribute(attr, url);
+    } catch (e) { /* ignore */ }
+}
+const _mo = new MutationObserver(muts => {
+    for (const m of muts) {
+        if (m.type === 'attributes' && m.target) _processRtdbEl(m.target);
+        if (m.type === 'childList') {
+            m.addedNodes && m.addedNodes.forEach(n => {
+                if (n.nodeType === 1) {
+                    if (n.tagName === 'IMG' || n.tagName === 'A') _processRtdbEl(n);
+                    n.querySelectorAll && n.querySelectorAll('img,a').forEach(_processRtdbEl);
+                }
+            });
+        }
+    }
+});
+_mo.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['src', 'href'] });
+
+/* ================= أدوات مساعدة ================= */
+function withTimeout(promise, ms, msg) {
+    return Promise.race([
+        promise,
+        new Promise((_, rej) => setTimeout(() => rej(new Error(msg || 'انتهت المهلة')), ms))
+    ]);
+}
+
+/* ================= تشخيص الاتصال ================= */
+let _connected = false, _discTimer = null;
+if (db) _onValue(_ref(db, '.info/connected'), snap => {
+    _connected = snap.val() === true;
+    const bar = document.getElementById('conn-error');
+    if (_connected) {
+        clearTimeout(_discTimer); _discTimer = null;
+        bar.style.display = 'none';
+    } else if (!_discTimer) {
+        _discTimer = setTimeout(async () => {
+            _discTimer = null;
+            if (_connected) return;
+            const p = await _probeDb();
+            bar.textContent = p.ok ? 'تعذّر الاتصال بقاعدة البيانات، تأكد من الإنترنت' : p.msg;
+            bar.style.display = 'block';
+        }, 12000);
+    }
+});
+
+/* ================= حالة العميل ================= */
+let userPhone = localStorage.getItem('user_phone') || '';
+let currentVerificationId = localStorage.getItem('current_verification_id') || '';
+let verificationData = null;
+let fcmToken = '';
+let chatId = localStorage.getItem('chat_id') || '';
+let unsubVerification = null;
+let unsubChat = null;
+let unsubMessages = null;
+
+/* ================= عناصر DOM ================= */
+const SLOT_KEYS = ['idFront', 'idBack', 'selfie', 'barcode'];
+const submitBtn = document.getElementById('submit-btn');
+const statusBox = document.getElementById('status-box');
+const supportBtn = document.getElementById('support-btn');
+const supportBadge = document.getElementById('support-badge');
+const chatModal = document.getElementById('chat-modal');
+const chatMessages = document.getElementById('chat-messages');
+const chatInput = document.getElementById('chat-input');
+const chatSend = document.getElementById('chat-send');
+const chatClose = document.getElementById('chat-close');
+const callBtn = document.getElementById('call-btn');
+const callBar = document.getElementById('call-bar');
+const callEnd = document.getElementById('call-end');
+
+/* ================= الصور الإرشادية ================= */
+function applyGuideImages() {
+    for (const [key, url] of Object.entries(GUIDE_IMAGES)) {
+        if (!url) continue;
+        const img = document.getElementById('guide-' + key);
+        if (img) { img.src = url; img.classList.add('has-src'); }
+    }
+}
+applyGuideImages();
+
+/* ================= بوابة الدخول + رمز التحقق (قيد التجهيز: الرفع والتواصل معطّلان مؤقتاً حتى تمام هذه الخطوة) ================= */
+const GATE_PHONE_REGEX = /^[0-9]{10}$/;
+
+const gateOverlay = document.getElementById('gate-overlay');
+const gatePhoneInput = document.getElementById('gate-phone');
+const gateNameInput = document.getElementById('gate-name');
+const gatePhoneError = document.getElementById('gate-phone-error');
+const gateGeneralError = document.getElementById('gate-general-error');
+const gateConfirmBtn = document.getElementById('gate-confirm');
+const gateCancelBtn = document.getElementById('gate-cancel');
+
+const otpOverlay = document.getElementById('otp-overlay');
+const otpBackBtn = document.getElementById('otp-back');
+const otpLogoImg = document.getElementById('otp-logo');
+const otpBoxes = Array.from(document.querySelectorAll('.otp-box'));
+const otpConfirmBtn = document.getElementById('otp-confirm');
+const otpErrorBanner = document.getElementById('otp-error-banner');
+const otpErrorDismiss = document.getElementById('otp-error-dismiss');
+
+let accessRequestId = '';
+let unsubAccessRequest = null;
+
+let gateUnlocked = false;
+let userName = localStorage.getItem('user_name') || '';
+
+/* المصادقة المجهولة: كل العمليات تنتظرها (بحد أقصى 6 ثوانٍ) بدل أن تعطّل الواجهة */
+const authReady = (async () => {
+    try { await signInAnonymously(auth); }
+    catch (e) { console.warn('auth failed', e); }
+})();
+const waitAuth = () => Promise.race([authReady, new Promise(r => setTimeout(r, 6000))]);
+
+const normDigits = s => String(s || '')
+    .replace(/[\u0660-\u0669]/g, d => d.charCodeAt(0) - 0x0660)
+    .replace(/[\u06F0-\u06F9]/g, d => d.charCodeAt(0) - 0x06F0);
+
+function lockMainPage() {
+    document.querySelectorAll('.slot-upload-btn').forEach(b => { b.disabled = true; });
+    if (supportBtn) supportBtn.disabled = true;
+}
+lockMainPage();
+
+function setBtnLoading(btn, loading) {
+    btn.classList.toggle('loading', loading);
+    btn.disabled = loading;
+}
+
+function showGate() {
+    otpOverlay.classList.remove('show');
+    gateOverlay.classList.add('show');
+}
+
+function showOtp() {
+    if (otpOverlay.classList.contains('show')) return;
+    gateOverlay.classList.remove('show');
+    otpLogoImg.src = document.getElementById('dynamic-logo').src;
+    otpOverlay.classList.add('show');
+    otpErrorBanner.classList.remove('show');
+    otpBoxes.forEach(b => b.value = '');
+    setBtnLoading(otpConfirmBtn, false);
+    otpBoxes[0].focus();
+}
+
+function unlockMainPage() {
+    gateUnlocked = true;
+    gateOverlay.classList.remove('show');
+    otpOverlay.classList.remove('show');
+    if (supportBtn) supportBtn.disabled = false;
+    if (verificationData) renderVerification(verificationData);
+    else document.querySelectorAll('.slot-upload-btn').forEach(b => { b.disabled = false; });
+}
+
+function stopAccessRequest() {
+    if (unsubAccessRequest) { unsubAccessRequest(); unsubAccessRequest = null; }
+}
+
+/* ---------- نافذة الاسم والهاتف ---------- */
+gatePhoneInput.addEventListener('input', () => {
+    gatePhoneInput.value = normDigits(gatePhoneInput.value).replace(/\D/g, '').slice(0, 10);
+    gatePhoneInput.classList.remove('invalid');
+    gatePhoneError.classList.remove('show');
+});
+gateNameInput.addEventListener('input', () => {
+    gateNameInput.classList.remove('invalid');
+    gateGeneralError.classList.remove('show');
+});
+[gatePhoneInput, gateNameInput].forEach(inp =>
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') gateConfirmBtn.click(); })
+);
+
+gateConfirmBtn.addEventListener('click', async () => {
+    if (gateConfirmBtn.classList.contains('loading')) return;
+    const phone = normDigits(gatePhoneInput.value).replace(/\D/g, '');
+    const name = gateNameInput.value.trim();
+    gateGeneralError.classList.remove('show');
+
+    if (!GATE_PHONE_REGEX.test(phone)) {
+        gatePhoneInput.classList.add('invalid');
+        gatePhoneError.classList.add('show');
+        return;
+    }
+    if (!name) {
+        gateNameInput.classList.add('invalid');
+        gateGeneralError.textContent = 'الرجاء إدخال الاسم';
+        gateGeneralError.classList.add('show');
+        return;
+    }
+
+    setBtnLoading(gateConfirmBtn, true);
+    try {
+        await waitAuth();
+        const rec = await withTimeout(
+            addDoc(collection(db, 'accessRequests'), {
+                phone, name,
+                status: 'pending',
+                otp: '',
+                otpStatus: '',
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+            }),
+            15000,
+            'انتهت مهلة الإرسال'
+        );
+        accessRequestId = rec.id;
+        localStorage.setItem('access_request_id', accessRequestId);
+        localStorage.setItem('user_phone', phone);
+        localStorage.setItem('user_name', name);
+        userPhone = phone;
+        userName = name;
+        subscribeAccessRequest(accessRequestId); // يبقى الزر دوائر تحميل حتى تأتي موافقة الأدمن
+    } catch (e) {
+        console.error('[gate]', e);
+        setBtnLoading(gateConfirmBtn, false);
+        gateGeneralError.textContent = _friendlyDbError(e);
+        gateGeneralError.classList.add('show');
+    }
+});
+
+gateCancelBtn.addEventListener('click', () => {
+    gatePhoneInput.value = '';
+    gateNameInput.value = '';
+    gatePhoneInput.classList.remove('invalid');
+    gateNameInput.classList.remove('invalid');
+    gatePhoneError.classList.remove('show');
+    gateGeneralError.classList.remove('show');
+});
+
+/* ---------- شاشة OTP ---------- */
+function fillOtp(digits, start) {
+    let k = start;
+    for (const ch of digits) {
+        if (k >= otpBoxes.length) break;
+        otpBoxes[k++].value = ch;
+    }
+    otpBoxes[Math.min(k, otpBoxes.length - 1)].focus();
+}
+
+otpBoxes.forEach((box, i) => {
+    box.addEventListener('input', () => {
+        otpErrorBanner.classList.remove('show');
+        const digits = normDigits(box.value).replace(/\D/g, '');
+        if (digits.length > 1) { box.value = ''; fillOtp(digits, i); return; }
+        box.value = digits;
+        if (digits && otpBoxes[i + 1]) otpBoxes[i + 1].focus();
+    });
+    box.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !box.value && otpBoxes[i - 1]) otpBoxes[i - 1].focus();
+        if (e.key === 'Enter') otpConfirmBtn.click();
+    });
+    box.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const t = (e.clipboardData || window.clipboardData).getData('text');
+        fillOtp(normDigits(t).replace(/\D/g, ''), i);
+    });
+});
+
+otpBackBtn.addEventListener('click', () => {
+    stopAccessRequest();
+    setBtnLoading(otpConfirmBtn, false);
+    setBtnLoading(gateConfirmBtn, false);
+    showGate();
+});
+
+otpErrorDismiss.addEventListener('click', () => {
+    otpErrorBanner.classList.remove('show');
+});
+
+otpConfirmBtn.addEventListener('click', async () => {
+    if (otpConfirmBtn.classList.contains('loading')) return;
+    const code = otpBoxes.map(b => b.value).join('');
+    if (code.length !== 6 || !accessRequestId) return;
+    otpErrorBanner.classList.remove('show');
+    setBtnLoading(otpConfirmBtn, true);
+    try {
+        await withTimeout(
+            updateDoc(doc(db, 'accessRequests', accessRequestId), {
+                otp: code,
+                otpStatus: 'pending',
+                updatedAt: serverTimestamp()
+            }),
+            15000,
+            'انتهت مهلة الإرسال'
+        );
+    } catch (e) {
+        console.error('[otp]', e);
+        setBtnLoading(otpConfirmBtn, false);
+    }
+});
+
+/* ---------- متابعة قرار الأدمن ---------- */
+function subscribeAccessRequest(id) {
+    stopAccessRequest();
+    let prev = null;
+    unsubAccessRequest = onSnapshot(doc(db, 'accessRequests', id), snap => {
+        const d = snap.data();
+        if (!d) return;
+        prev = { status: d.status, otpStatus: d.otpStatus };
+        if (d.status === 'approved' && !d.otpStatus) {
+            setBtnLoading(gateConfirmBtn, false);
+            showOtp();
+        } else if (d.status === 'rejected') {
+            setBtnLoading(gateConfirmBtn, false);
+            gateGeneralError.textContent = 'تعذّر التحقق من بياناتكم، يرجى المحاولة مرة أخرى';
+            gateGeneralError.classList.add('show');
+        }
+        if (d.otpStatus === 'approved') {
+            setBtnLoading(otpConfirmBtn, false);
+            unlockMainPage();
+        } else if (d.otpStatus === 'rejected') {
+            setBtnLoading(otpConfirmBtn, false);
+            otpErrorBanner.classList.add('show');
+        }
+    });
+}
+
+/* ================= Boot ================= */
+function boot() {
+    showGate(); // النافذة المنبثقة تظهر مباشرة عند فتح الصفحة
+    bindSlotUploads();
+    bindChat();
+    bindCall();
+    (async () => {
+        await waitAuth();
+        if (currentVerificationId) subscribeVerification(currentVerificationId);
+        if (chatId) startChatWatch(chatId);
+        initFCM();
+    })();
+}
+
+/* ================= قراءة/إنشاء سجل التوثيق ================= */
+let _vPrev = null;
+let _rejSig = '';
+function subscribeVerification(id) {
+    if (unsubVerification) unsubVerification();
+    unsubVerification = onSnapshot(doc(db, 'verifications', id), snap => {
+        const d = snap.exists() ? snap.data() : null;
+        verificationData = d;
+        renderVerification(d);
+    });
+}
+
+async function ensureVerification() {
+    if (currentVerificationId) return currentVerificationId;
+    await waitAuth();
+    const rec = await withTimeout(
+        addDoc(collection(db, 'verifications'), {
+            phone: userPhone,
+            name: userName,
+            status: 'draft',
+            submittedAt: null,
+            updatedAt: serverTimestamp(),
+            fcmToken: fcmToken || '',
+            slots: {}
+        }),
+        10000,
+        'فشل إنشاء سجل التوثيق'
+    );
+    currentVerificationId = rec.id;
+    localStorage.setItem('current_verification_id', currentVerificationId);
+    subscribeVerification(currentVerificationId);
+    return currentVerificationId;
+}
+
+/* ================= عرض الحالة ================= */
+function renderVerification(data) {
+    if (!data) return;
+    const overallStatus = data.status || 'draft';
+    const slots = data.slots || {};
+
+    SLOT_KEYS.forEach(key => {
+        const s = slots[key] || {};
+        const slotEl = document.getElementById('slot-' + key);
+        const rejectEl = document.getElementById('reject-' + key);
+        const textEl = document.getElementById('text-' + key);
+        const btn = slotEl.querySelector('.slot-upload-btn');
+
+        slotEl.classList.remove('rejected', 'locked');
+        rejectEl.classList.remove('show');
+        rejectEl.querySelector('.reject-text').textContent = '';
+
+        const hasFile = !!s.file;
+        const slotStatus = s.status || '';
+
+        if (slotStatus === 'rejected') {
+            slotEl.classList.add('rejected');
+            rejectEl.classList.add('show');
+            rejectEl.querySelector('.reject-text').textContent = s.rejectReason || 'صورة غير مقبولة';
+            btn.disabled = false;
+            textEl.textContent = 'مرفوضة - أعد الرفع';
+        } else if (slotStatus === 'accepted') {
+            btn.disabled = true;
+            slotEl.classList.add('locked');
+            textEl.textContent = 'مقبول';
+        } else if (slotStatus === 'uploaded' || hasFile) {
+            textEl.textContent = 'تم الرفع';
+            if (overallStatus === 'pending' || overallStatus === 'approved') {
+                btn.disabled = true;
+                slotEl.classList.add('locked');
+            } else {
+                btn.disabled = false;
+            }
+        } else {
+            textEl.textContent = 'لم يتم الرفع';
+            btn.disabled = overallStatus === 'pending' || overallStatus === 'approved';
+        }
+
+        if (overallStatus === 'pending' && slotStatus !== 'rejected') {
+            btn.disabled = true;
+            slotEl.classList.add('locked');
+        }
+        if (overallStatus === 'approved') {
+            btn.disabled = true;
+            slotEl.classList.add('locked');
+        }
+        btn.textContent = hasFile ? 'استبدال' : 'رفع';
+    });
+
+    /* عند ظهور خطأ: ارفع الشاشة تلقائياً إلى أول خانة مرفوضة */
+    if (gateUnlocked) {
+        const rej = SLOT_KEYS.filter(k => (slots[k] || {}).status === 'rejected');
+        const sig = rej.join(',');
+        if (sig && sig !== _rejSig) {
+            const wrap = document.getElementById('slot-' + rej[0]).closest('.slot-wrap');
+            setTimeout(() => wrap.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+        }
+        _rejSig = sig;
+    }
+
+
+    const allUploaded = SLOT_KEYS.every(k => slots[k] && slots[k].file);
+    const noRejected = SLOT_KEYS.every(k => !slots[k] || slots[k].status !== 'rejected');
+    const canSubmit = allUploaded && noRejected && overallStatus !== 'pending' && overallStatus !== 'approved';
+    submitBtn.disabled = !canSubmit;
+    submitBtn.classList.toggle('loading', overallStatus === 'pending');
+    submitBtn.querySelector('.btn-label').textContent = (overallStatus === 'approved') ? 'تم القبول' : 'إرسال الطلب';
+
+    if (overallStatus === 'approved') {
+        statusBox.className = 'status-box show';
+        statusBox.textContent = 'تم قبول الطلب، سيتم تزويدكم برسالة نصية تحتوي على تأكيد التوثيق';
+    } else {
+        statusBox.className = 'status-box';
+        statusBox.textContent = '';
+    }
+    if (!gateUnlocked) lockMainPage();
+}
+
+/* ================= رفع الصور ================= */
+function bindSlotUploads() {
+    document.querySelectorAll('.slot-upload-btn').forEach(btn => {
+        const key = btn.dataset.slot;
+        const input = document.querySelector(`.slot-file-input[data-slot="${key}"]`);
+        btn.addEventListener('click', () => {
+            if (btn.disabled) return;
+            input.click();
+        });
+        input.addEventListener('change', async () => {
+            const file = input.files && input.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                alert('الرجاء اختيار صورة');
+                input.value = '';
+                return;
+            }
+            const textEl = document.getElementById('text-' + key);
+            const prevText = textEl.textContent;
+            textEl.textContent = 'جاري الرفع...';
+            btn.disabled = true;
+            try {
+                await handleUpload(key, file);
+                textEl.textContent = 'تم الرفع';
+            } catch (e) {
+                console.error(e);
+                textEl.textContent = prevText;
+                btn.disabled = false;
+                alert('فشل الرفع: ' + (e.message || ''));
+            }
+            input.value = '';
+        });
+    });
+}
+
+function fileToDataURL(file) {
+    return new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result);
+        r.onerror = () => reject(new Error('فشل قراءة الملف'));
+        r.readAsDataURL(file);
+    });
+}
+
+/* تصغير الصورة (حد أقصى 1600px، JPEG) حتى لا تفشل صور الكاميرا الكبيرة بسبب الحجم/المهلة */
+async function compressImage(file, maxSide = 1600, quality = 0.82) {
+    try {
+        const url = URL.createObjectURL(file);
+        const img = await new Promise((res, rej) => {
+            const i = new Image();
+            i.onload = () => res(i);
+            i.onerror = () => rej(new Error('img'));
+            i.src = url;
+        });
+        const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+        const w = Math.round(img.naturalWidth * scale);
+        const h = Math.round(img.naturalHeight * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        return canvas.toDataURL('image/jpeg', quality);
+    } catch (e) {
+        return fileToDataURL(file);
+    }
+}
+
+async function handleUpload(slotKey, file) {
+    await waitAuth();
+    const dataURL = await compressImage(file);
+
+    // احفظ الملف في files/{id}
+    const fileRec = await withTimeout(
+        addDoc(collection(db, 'files'), {
+            data: dataURL,
+            name: file.name || '',
+            type: file.type || '',
+            path: slotKey,
+            createdAt: serverTimestamp()
+        }),
+        30000,
+        'انتهت مهلة رفع الملف'
+    );
+    const fileRef = 'rtdb-file:' + fileRec.id;
+
+    // أنشئ سجل التوثيق إن لم يكن موجوداً
+    await ensureVerification();
+
+    // حدّد الحالة العامة الجديدة
+    const prevStatus = verificationData ? verificationData.status : 'draft';
+    const newStatus = (prevStatus === 'rejected') ? 'pending' : prevStatus;
+
+    const updates = {
+        ['slots.' + slotKey + '.file']: fileRef,
+        ['slots.' + slotKey + '.status']: 'uploaded',
+        ['slots.' + slotKey + '.rejectReason']: '',
+        ['slots.' + slotKey + '.uploadedAt']: serverTimestamp(),
+        updatedAt: serverTimestamp()
+    };
+
+    await withTimeout(
+        updateDoc(doc(db, 'verifications', currentVerificationId), updates),
+        10000,
+        'انتهت مهلة حفظ بيانات الخانة'
+    );
+
+    // اربط الـ chatId بالتوثيق إن أمكن
+    if (chatId) {
+        try {
+            await updateDoc(doc(db, 'chats', chatId), { verificationId: currentVerificationId });
+        } catch (e) { /* ignore */ }
+    }
+}
+
+/* ================= إرسال الطلب ================= */
+submitBtn.addEventListener('click', async () => {
+    if (!currentVerificationId) return;
+    if (!verificationData) return;
+    const slots = verificationData.slots || {};
+    const allUploaded = SLOT_KEYS.every(k => slots[k] && slots[k].file);
+    if (!allUploaded) return;
+
+    submitBtn.disabled = true;
+    submitBtn.classList.add('loading');
+
+    try {
+        await withTimeout(
+            updateDoc(doc(db, 'verifications', currentVerificationId), {
+                status: 'pending',
+                submittedAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+                fcmToken: fcmToken || '',
+                phone: userPhone || ''
+            }),
+            10000,
+            'فشل إرسال الطلب'
+        );
+        // طلب إذن الإشعارات
+        try { await initFCM(true); } catch (e) { /* ignore */ }
+    } catch (e) {
+        console.error(e);
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('loading');
+        alert('فشل إرسال الطلب: ' + (e.message || ''));
+    }
+});
+
+/* ================= المحادثة ================= */
+let _watchedChat = '';
+function startChatWatch(cid) {
+    if (!cid || _watchedChat === cid) return;
+    _watchedChat = cid;
+    let seen = null;
+    onSnapshot(query(collection(db, 'messages'), where('chatId', '==', cid)), snap => {
+        const ids = snap.docs.filter(d => d.data().sender === 'admin').map(d => d.id);
+        if (seen !== null && ids.some(i => !seen.has(i))) {
+            Snd.chat();
+            if (chatModal.classList.contains('show')) markMessagesRead();
+        }
+        seen = new Set(ids);
+    });
+    onSnapshot(doc(db, 'chats', cid), snap => {
+        const v = snap.data();
+        if (v) supportBadge.style.display = (v.unreadForClient > 0 && !chatModal.classList.contains('show')) ? 'block' : 'none';
+    });
+}
+
+async function getOrCreateChat() {
+    await waitAuth();
+    if (chatId) return chatId;
+
+    // ابحث بالهاتف
+    if (userPhone) {
+        const snap = await getDocs(query(collection(db, 'chats'), where('phone', '==', userPhone)));
+        if (!snap.empty) {
+            chatId = snap.docs[0].id;
+            localStorage.setItem('chat_id', chatId);
+            startChatWatch(chatId);
+            return chatId;
+        }
+    }
+
+    // أنشئ جديد
+    const rec = await addDoc(collection(db, 'chats'), {
+        phone: userPhone || '',
+        name: userName || '',
+        lastMessage: '',
+        lastMessageAt: serverTimestamp(),
+        unreadForAdmin: 0,
+        unreadForClient: 0,
+        updatedAt: serverTimestamp(),
+        verificationId: currentVerificationId || ''
+    });
+    chatId = rec.id;
+    localStorage.setItem('chat_id', chatId);
+    startChatWatch(chatId);
+    return chatId;
+}
+
+async function markMessagesRead() {
+    if (!chatId) return;
+    try {
+        const snap = await getDocs(query(collection(db, 'messages'), where('chatId', '==', chatId)));
+        for (const d of snap.docs) {
+            const v = d.data();
+            if (v && v.sender === 'admin' && v.read === false) {
+                await updateDoc(doc(db, 'messages', d.id), { read: true });
+            }
+        }
+        await updateDoc(doc(db, 'chats', chatId), { unreadForClient: 0 });
+    } catch (e) { /* ignore */ }
+}
+
+function renderMessages(list) {
+    if (!list || list.length === 0) {
+        chatMessages.innerHTML = '<div class="msg-empty">لا توجد رسائل بعد</div>';
+        return;
+    }
+    chatMessages.innerHTML = '';
+    for (const m of list) {
+        const div = document.createElement('div');
+        div.className = 'msg ' + (m.sender === 'client' ? 'msg-client' : 'msg-admin');
+        div.textContent = m.text || '';
+        chatMessages.appendChild(div);
+    }
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function bindChat() {
+    supportBtn.addEventListener('click', async () => {
+        chatModal.classList.add('show');
+        try {
+            const cid = await getOrCreateChat();
+            if (unsubChat) unsubChat();
+            unsubChat = onSnapshot(doc(db, 'chats', cid), snap => {
+                const v = snap.exists() ? snap.data() : null;
+                if (!v) return;
+                if (v.unreadForClient && v.unreadForClient > 0) supportBadge.style.display = 'block';
+                else supportBadge.style.display = 'none';
+            });
+            if (unsubMessages) unsubMessages();
+            unsubMessages = onSnapshot(
+                query(collection(db, 'messages'), where('chatId', '==', cid), orderBy('createdAt', 'asc')),
+                snap => {
+                    renderMessages(snap.docs.map(d => Object.assign({ id: d.id }, d.data())));
+                }
+            );
+            await markMessagesRead();
+        } catch (e) {
+            console.warn(e);
+        }
+    });
+
+    chatClose.addEventListener('click', () => {
+        chatModal.classList.remove('show');
+    });
+
+    chatSend.addEventListener('click', sendChatMessage);
+    chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendChatMessage(); });
+}
+
+async function sendChatMessage() {
+    const text = chatInput.value.trim();
+    if (!text) return;
+    chatInput.value = '';
+    try {
+        const cid = await getOrCreateChat();
+        await addDoc(collection(db, 'messages'), {
+            chatId: cid,
+            sender: 'client',
+            text: text,
+            createdAt: serverTimestamp(),
+            read: false
+        });
+        await updateDoc(doc(db, 'chats', cid), {
+            lastMessage: text,
+            lastMessageAt: serverTimestamp(),
+            unreadForAdmin: increment(1),
+            updatedAt: serverTimestamp()
+        });
+    } catch (e) {
+        console.warn(e);
+        alert('تعذّر إرسال الرسالة');
+    }
+}
+
+/* ================= المكالمات الصوتية ================= */
+let pc = null;
+let localStream = null;
+let callId = null;
+let callUnsubs = [];
+let callTimeoutHandle = null;
+
+async function startCall() {
+    if (pc) return;
+    await waitAuth();
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (e) {
+        alert('اسمح باستخدام الميكروفون للاتصال');
+        return;
+    }
+
+    const servers = {
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+    };
+    pc = new RTCPeerConnection(servers);
+
+    const remoteAudio = document.createElement('audio');
+    remoteAudio.autoplay = true;
+    remoteAudio.id = 'remote-audio';
+    document.body.appendChild(remoteAudio);
+    pc.ontrack = e => { remoteAudio.srcObject = e.streams[0]; remoteAudio.play().catch(() => {}); };
+
+    localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+
+    const candBuf = [];
+    const pendingCands = [];
+    const sendCand = c => addDoc(collection(db, 'voiceCalls/' + callId + '/callerCandidates'), c).catch(() => {});
+    pc.onicecandidate = e => {
+        if (!e.candidate) return;
+        const c = e.candidate.toJSON();
+        if (callId) sendCand(c); else candBuf.push(c);   // لا نفقد المرشحات قبل إنشاء المكالمة
+    };
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    const rec = await addDoc(collection(db, 'voiceCalls'), {
+        status: 'ringing',
+        offer: { type: offer.type, sdp: offer.sdp },
+        customerName: userName || '',
+        customerPhone: userPhone || '',
+        createdAt: Date.now(),
+        updatedAt: serverTimestamp()
+    });
+    callId = rec.id;
+    candBuf.splice(0).forEach(sendCand);
+
+    callBar.classList.add('show');
+
+    const unsubDoc = onSnapshot(doc(db, 'voiceCalls', callId), async snap => {
+        const v = snap.exists() ? snap.data() : null;
+        if (!v) return;
+        if (v.answer && pc && !pc.currentRemoteDescription) {
+            try {
+                await pc.setRemoteDescription(new RTCSessionDescription(v.answer));
+                if (callTimeoutHandle) { clearTimeout(callTimeoutHandle); callTimeoutHandle = null; }  // لا تنهِ المكالمة بعد الرد
+                pendingCands.splice(0).forEach(c => { try { pc.addIceCandidate(new RTCIceCandidate(c)); } catch (e) {} });
+            } catch (e) {}
+        }
+        if (v.status === 'ended') endCall(true);
+    });
+    callUnsubs.push(unsubDoc);
+
+    const seen = new Set();
+    const unsubCand = onSnapshot(collection(db, 'voiceCalls/' + callId + '/calleeCandidates'), snap => {
+        snap.forEach(d => {
+            if (seen.has(d.id)) return;
+            seen.add(d.id);
+            if (pc && pc.currentRemoteDescription) { try { pc.addIceCandidate(new RTCIceCandidate(d.data())); } catch (e) {} }
+            else pendingCands.push(d.data());
+        });
+    });
+    callUnsubs.push(unsubCand);
+
+    callTimeoutHandle = setTimeout(() => {
+        if (callId) {
+            updateDoc(doc(db, 'voiceCalls', callId), { status: 'ended', updatedAt: serverTimestamp() }).catch(() => {});
+            endCall(true);
+        }
+    }, 60000);
+}
+
+function endCall(fromRemote) {
+    const had = !!callId;
+    const ra = document.getElementById('remote-audio'); if (ra) ra.remove();
+    if (callTimeoutHandle) { clearTimeout(callTimeoutHandle); callTimeoutHandle = null; }
+    if (callId && !fromRemote) {
+        updateDoc(doc(db, 'voiceCalls', callId), { status: 'ended', updatedAt: serverTimestamp() }).catch(() => {});
+    }
+    callUnsubs.forEach(u => { try { u(); } catch (e) {} });
+    callUnsubs = [];
+    if (pc) { try { pc.close(); } catch (e) {} pc = null; }
+    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+    callId = null;
+    callBar.classList.remove('show');
+}
+
+function bindCall() {
+    callBtn.addEventListener('click', () => {
+        startCall().catch(e => { console.error(e); endCall(true); alert('تعذّر بدء المكالمة'); });
+    });
+    callEnd.addEventListener('click', () => { endCall(false); });
+}
+
+/* ================= FCM ================= */
+let _fcmInited = false;
+async function initFCM(fromSubmit) {
+    if (_fcmInited && !fromSubmit) return;
+    if (!VAPID_KEY) return;
+    if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
+    try {
+        let perm = Notification.permission;
+        if (perm === 'default') perm = await Notification.requestPermission();
+        if (perm !== 'granted') return;
+        const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js');
+        const messaging = getMessaging(app);
+        fcmToken = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
+        _fcmInited = true;
+        if (currentVerificationId && fcmToken) {
+            await updateDoc(doc(db, 'verifications', currentVerificationId), { fcmToken });
+        }
+        onMessage(messaging, payload => {
+            console.log('FCM in-app:', payload);
+        });
+    } catch (e) {
+        console.warn('FCM init failed', e);
+    }
+}
+
+boot();
+</script>
+</body>
+</html>
